@@ -1,0 +1,116 @@
+openapi: 3.1.0
+info:
+  title: Train APIs
+  description: Train APIs
+  version: 1.0.0
+servers:
+  - url: 'https://api.example.com'
+paths:
+  /solutions:
+    get:
+      summary: Get solutions
+      operationId: getSolutions
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/StationId'
+        - name: to
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/StationId'
+      responses:
+        '200':
+          description: A list of solutions from the origin to the destination
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Solution'
+components:
+  schemas:
+    Station:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          $ref: '#/components/schemas/StationId'
+        name:
+          type: string
+    StationId:
+      type: string
+    Solution:
+      type: object
+      required:
+        - from
+        - to
+        - trips
+      properties:
+        from:
+          $ref: '#/components/schemas/Station'
+        to:
+          $ref: '#/components/schemas/Station'
+        trips:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trip'
+    Trip:
+      type: object
+      required:
+        - from
+        - to
+        - departureTime
+        - arrivalTime
+        - run
+      properties:
+        from:
+          $ref: '#/components/schemas/Station'
+        to:
+          $ref: '#/components/schemas/Station'
+        departureTime:
+          type: string
+          format: date-time
+        arrivalTime:
+          type: string
+          format: date-time
+        run:
+          $ref: '#/components/schemas/Run'
+    Run:
+      type: object
+      required:
+        - id
+        - originDepartureTime
+        - finalArrivalTime
+      properties:
+        id:
+          $ref: '#/components/schemas/RunId'
+        originDepartureTime:
+          type: string
+          format: date-time
+        finalArrivalTime:
+          type: string
+          format: date-time
+        train:
+          $ref: '#/components/schemas/Train'
+    RunId:
+      type: string
+    Train:
+      type: object
+      required:
+        - id
+        - origin
+        - destination
+      properties:
+        id:
+          $ref: '#/components/schemas/TrainId'
+        origin:
+          $ref: '#/components/schemas/Station'
+        destination:
+          $ref: '#/components/schemas/Station'
+    TrainId:
+      type: string
