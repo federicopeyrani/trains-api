@@ -1,0 +1,969 @@
+openapi: 3.0.3
+info:
+  title: ViaggiaTreno API
+  description: |
+    API client for Trenitalia's ViaggiaTreno service.
+    
+    Key concepts:
+    - A **station** (stazione) is a temporary stopping place for trains
+    - A **train** (treno) is uniquely identified by the triple (Date, OriginStation, TrainNumber)
+    - A **stop** (fermata) is a station where a train not only transits but also halts
+    - All timestamps are in milliseconds precision (multiples of 1000)
+  version: 1.0.0
+servers:
+  - url: 'http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno'
+    description: ViaggiaTreno production server
+paths:
+  /cercaNumeroTrenoTrenoAutocomplete/{numeroTreno}:
+    get:
+      summary: Disambiguate trains with same number
+      description: |
+        Returns all trains with the given number but different origins.
+        Used to disambiguate trains that share the same number.
+        Response format is proprietary (not JSON).
+      operationId: cercaNumeroTrenoTrenoAutocomplete
+      tags:
+        - Trains
+      parameters:
+        - name: numeroTreno
+          in: path
+          required: true
+          description: Train number to search for
+          schema:
+            type: integer
+            example: 2107
+      responses:
+        '200':
+          description: |
+            Proprietary text format with train disambiguations.
+            Format: `numeroTreno - originStationName|numeroTreno-originStationCode-midnightTimestamp`
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                2107 - TORINO PORTA NUOVA|2107-S00219-1678230000000
+                2107 - MILANO NORD CADORNA|2107-N00001-1678230000000
+        '204':
+          description: No trains found with this number
+
+  /cercaStazione/{stringa}:
+    get:
+      summary: Search for stations
+      description: |
+        Returns all stations whose name starts with the given string.
+        Note: This method does NOT return all stations. Some stations (like Arcene, S01608) 
+        are only visible in train stop lists but never returned by search.
+      operationId: cercaStazione
+      tags:
+        - Stations
+      parameters:
+        - name: stringa
+          in: path
+          required: true
+          description: Search query - can be as short as a single character
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: List of stations matching the search query
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stazione'
+        '204':
+          description: No stations found
+
+  /regione/{idStazione}:
+    get:
+      summary: Get station's region code
+      description: |
+        Returns the region code for a given station.
+        Useful for subsequent calls to elencoStazioni.
+        Note: Response is plain text, not JSON despite Content-Type header.
+      operationId: getRegione
+      tags:
+        - Stations
+      parameters:
+        - name: idStazione
+          in: path
+          required: true
+          description: Station ID in unaltered format
+          schema:
+            type: string
+            example: "S01700"
+      responses:
+        '200':
+          description: Region code as plain text
+          content:
+            text/plain:
+              schema:
+                type: integer
+              example: 1
+        '204':
+          description: Region information not available for this station
+
+  /elencoStazioni/{codiceRegione}:
+    get:
+      summary: List all stations in a region
+      description: |
+        Returns all stations in the specified region. Use region code 0 for main Italian stations.
+        Note: Some stations may appear in multiple regions. Use /regione endpoint to get canonical region.
+        This returns more stations than cercaStazione, but still not all (missing stations without additional info).
+      operationId: elencoStazioni
+      tags:
+        - Stations
+      parameters:
+        - name: codiceRegione
+          in: path
+          required: true
+          description: |
+            Region code (0 returns main Italian stations).
+            Codes 21 and 22 both refer to Trentino-Alto Adige.
+          schema:
+            type: integer
+            format: int32
+            example: 1
+      responses:
+        '200':
+          description: List of stations in the region
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StazioneDettagliata'
+
+  /partenze/{idStazione}/{orarioAttuale}:
+    get:
+      summary: Get departures from a station
+      description: |
+        Returns list of trains departing from the station at the given time.
+        Times different from current may produce partial results or errors.
+      operationId: getPartenze
+      tags:
+        - Trains
+      parameters:
+        - name: idStazione
+          in: path
+          required: true
+          description: Station ID in unaltered format
+          schema:
+            type: string
+            example: "S01700"
+        - name: orarioAttuale
+          in: path
+          required: true
+          description: |
+            Current time in format: `%a %b %d %Y %H:%M:%S %Z%z`
+            Example: "Wed Mar 08 2023 17:04:00 GMT+0100 (Central European Standard Time)"
+          schema:
+            type: string
+            example: "Wed Mar 08 2023 17:04:00 GMT+0100 (Central European Standard Time)"
+      responses:
+        '200':
+          description: List of departing trains
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PartenzeArrivi'
+
+  /arrivi/{idStazione}/{orarioAttuale}:
+    get:
+      summary: Get arrivals at a station
+      description: |
+        Returns list of trains arriving at the station at the given time.
+        Identical to /partenze but for arrivals.
+      operationId: getArrivi
+      tags:
+        - Trains
+      parameters:
+        - name: idStazione
+          in: path
+          required: true
+          description: Station ID in unaltered format
+          schema:
+            type: string
+            example: "S01700"
+        - name: orarioAttuale
+          in: path
+          required: true
+          description: |
+            Current time in format: `%a %b %d %Y %H:%M:%S %Z%z`
+            Example: "Wed Mar 08 2023 17:04:00 GMT+0100"
+          schema:
+            type: string
+            example: "Wed Mar 08 2023 17:04:00 GMT+0100"
+      responses:
+        '200':
+          description: List of arriving trains
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PartenzeArrivi'
+
+  /andamentoTreno/{idStazioneOrigine}/{numeroTreno}/{orarioMezzanotte}:
+    get:
+      summary: Get train journey details
+      description: |
+        Returns detailed information about a train journey including all stops, delays, and status.
+        May return 204 for cancelled or rescheduled trains even if they appear in partenze/arrivi.
+        Train is uniquely identified by (Date, OriginStation, TrainNumber).
+      operationId: andamentoTreno
+      tags:
+        - Trains
+      parameters:
+        - name: idStazioneOrigine
+          in: path
+          required: true
+          description: Origin station ID
+          schema:
+            type: string
+            example: "S01700"
+        - name: numeroTreno
+          in: path
+          required: true
+          description: Train number
+          schema:
+            type: integer
+            example: 9584
+        - name: orarioMezzanotte
+          in: path
+          required: true
+          description: Midnight timestamp of the journey date (in milliseconds)
+          schema:
+            type: integer
+            format: int64
+            example: 1678230000000
+      responses:
+        '200':
+          description: Train journey details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AndamentoTreno'
+        '204':
+          description: |
+            Train details not available (often for cancelled or rescheduled trains).
+            Check provvedimento and riprogrammazione fields in partenze/arrivi response.
+
+components:
+  schemas:
+    Stazione:
+      type: object
+      description: Basic train station information
+      required:
+        - id
+        - nomeLungo
+        - nomeBreve
+      properties:
+        id:
+          type: string
+          description: Station ID (unique identifier)
+          example: "S01700"
+        nomeLungo:
+          type: string
+          description: Full station name (uppercase)
+          example: "MILANO CENTRALE"
+        nomeBreve:
+          type: string
+          description: Short station name (mixed case)
+          example: "Milano Centrale"
+        label:
+          type: string
+          nullable: true
+          description: City name or location label (can be null)
+          example: "Milano"
+
+    StazioneDettagliata:
+      type: object
+      description: |
+        Detailed train station information with geographical coordinates and display metadata.
+        Note: codiceStazione, codStazione and localita.id are always equal in practice.
+      required:
+        - codiceStazione
+        - codStazione
+        - localita
+      properties:
+        codReg:
+          type: integer
+          description: Region code from the request
+          example: 3
+        tipoStazione:
+          type: integer
+          description: |
+            Station type:
+            - 1: Main station
+            - 3: Regular station
+            - 4: Placeholder (should be ignored)
+          enum: [ 1, 3, 4 ]
+          example: 3
+        dettZoomStaz:
+          type: array
+          description: Zoom level details for map display
+          items:
+            $ref: '#/components/schemas/DettaglioZoom'
+        pstaz:
+          type: array
+          description: Additional station details (usually empty)
+          items:
+            type: object
+        mappaCitta:
+          $ref: '#/components/schemas/MappaCitta'
+        codiceStazione:
+          type: string
+          description: Station code (primary identifier)
+          example: "S01013"
+        codStazione:
+          type: string
+          description: Station code (duplicate of codiceStazione)
+          example: "S01013"
+        lat:
+          type: number
+          format: double
+          description: Latitude coordinate
+          example: 45.943821
+        lon:
+          type: number
+          format: double
+          description: Longitude coordinate
+          example: 8.47224
+        latMappaCitta:
+          type: number
+          format: double
+          description: City map latitude coordinate
+        lonMappaCitta:
+          type: number
+          format: double
+          description: City map longitude coordinate
+        localita:
+          $ref: '#/components/schemas/Localita'
+        esterno:
+          type: boolean
+          description: Whether station is external/foreign
+        offsetX:
+          type: integer
+          description: X offset for map label display
+          example: -4
+        offsetY:
+          type: integer
+          description: Y offset for map label display
+          example: 10
+        nomeCitta:
+          type: string
+          nullable: true
+          description: City name (can be null or "A" which both mean null)
+          example: "Verbania"
+
+    DettaglioZoom:
+      type: object
+      description: Zoom level configuration for map display
+      properties:
+        codiceStazione:
+          type: string
+          description: Station code
+          example: "S01013"
+        zoomStartRange:
+          type: integer
+          description: Minimum zoom level for this configuration
+          example: 8
+        zoomStopRange:
+          type: integer
+          description: Maximum zoom level for this configuration
+          example: 9
+        pinpointVisibile:
+          type: boolean
+          description: Whether pinpoint is visible (deprecated, use pinpointVisible)
+        pinpointVisible:
+          type: boolean
+          description: Whether pinpoint marker is visible at this zoom level
+        labelVisibile:
+          type: boolean
+          description: Whether label is visible (deprecated, use labelVisible)
+        labelVisible:
+          type: boolean
+          description: Whether station label is visible at this zoom level
+        codiceRegione:
+          type: string
+          nullable: true
+          description: Region code (usually null)
+
+    MappaCitta:
+      type: object
+      description: City map image URLs for display
+      properties:
+        urlImagePinpoint:
+          type: string
+          description: URL for pinpoint marker image
+        urlImageBaloon:
+          type: string
+          description: URL for info balloon image
+
+    Localita:
+      type: object
+      description: Location information (identical structure to Stazione)
+      required:
+        - id
+        - nomeLungo
+        - nomeBreve
+      properties:
+        id:
+          type: string
+          description: Station ID
+          example: "S01013"
+        nomeLungo:
+          type: string
+          description: Full station name (uppercase)
+          example: "VERBANIA-PALLANZA"
+        nomeBreve:
+          type: string
+          description: Short station name
+          example: "Verbania"
+        label:
+          type: string
+          description: Station label for display
+          example: "Verbania-Pallanza"
+
+    PartenzeArrivi:
+      type: object
+      description: |
+        Train departure/arrival information at a station.
+        Important fields for detecting issues:
+        - provvedimento: 0=regular, 1=cancelled, 2=partially cancelled
+        - riprogrammazione: 'Y' indicates rescheduled train
+        - compImgCambiNumerazione: Contains HTML for status icons
+      properties:
+        numeroTreno:
+          type: integer
+          description: Train number
+          example: 9584
+        categoria:
+          type: string
+          description: Train category code
+          example: "FR"
+        categoriaDescrizione:
+          type: string
+          description: Train category description
+          example: "Frecciarossa"
+        origine:
+          type: string
+          nullable: true
+          description: Origin station name
+        codOrigine:
+          type: string
+          description: Origin station code
+          example: "S01700"
+        destinazione:
+          type: string
+          description: Destination station name
+          example: "TORINO PORTA NUOVA"
+        codDestinazione:
+          type: string
+          nullable: true
+          description: Destination station code
+        origineEstera:
+          type: string
+          nullable: true
+          description: Foreign origin (for international trains)
+        destinazioneEstera:
+          type: string
+          nullable: true
+          description: Foreign destination (for international trains)
+        oraPartenzaEstera:
+          type: string
+          nullable: true
+          description: Foreign departure time
+        oraArrivoEstera:
+          type: string
+          nullable: true
+          description: Foreign arrival time
+        tratta:
+          type: integer
+        regione:
+          type: integer
+        origineZero:
+          type: string
+          nullable: true
+        destinazioneZero:
+          type: string
+          nullable: true
+        orarioPartenzaZero:
+          type: integer
+          format: int64
+          nullable: true
+        orarioArrivoZero:
+          type: integer
+          format: int64
+          nullable: true
+        circolante:
+          type: boolean
+          description: Whether train is currently running
+        codiceCliente:
+          type: integer
+        binarioEffettivoArrivoCodice:
+          type: string
+          nullable: true
+          description: Actual arrival platform code
+        binarioEffettivoArrivoDescrizione:
+          type: string
+          nullable: true
+          description: Actual arrival platform description
+        binarioEffettivoArrivoTipo:
+          type: string
+          nullable: true
+        binarioProgrammatoArrivoCodice:
+          type: string
+          nullable: true
+          description: Scheduled arrival platform code
+        binarioProgrammatoArrivoDescrizione:
+          type: string
+          nullable: true
+          description: Scheduled arrival platform description
+        binarioEffettivoPartenzaCodice:
+          type: string
+          nullable: true
+          description: Actual departure platform code
+        binarioEffettivoPartenzaDescrizione:
+          type: string
+          nullable: true
+          description: Actual departure platform description
+        binarioEffettivoPartenzaTipo:
+          type: string
+          nullable: true
+        binarioProgrammatoPartenzaCodice:
+          type: string
+          nullable: true
+          description: Scheduled departure platform code
+        binarioProgrammatoPartenzaDescrizione:
+          type: string
+          nullable: true
+          description: Scheduled departure platform description
+        subTitle:
+          type: string
+          nullable: true
+          description: Cancellation/deviation description (e.g., "Treno cancellato da X a Y")
+        esisteCorsaZero:
+          type: string
+          nullable: true
+        orientamento:
+          type: string
+          nullable: true
+          description: Train composition orientation (e.g., "B")
+        inStazione:
+          type: boolean
+          description: Whether train is currently in station
+        haCambiNumero:
+          type: boolean
+          description: Whether train has changed number
+        nonPartito:
+          type: boolean
+          description: Whether train has not departed yet
+        provvedimento:
+          type: integer
+          description: |
+            Train status code:
+            - 0: Regular
+            - 1: Cancelled
+            - 2: Partially cancelled/diverted/rescheduled
+            - 3: Diverted
+          example: 0
+        riprogrammazione:
+          type: string
+          description: "'Y' if train is rescheduled, 'N' otherwise"
+          enum: [ "Y", "N" ]
+          example: "N"
+        orarioPartenza:
+          type: integer
+          format: int64
+          description: Departure time (timestamp in milliseconds)
+          example: 1678291320000
+        orarioArrivo:
+          type: integer
+          format: int64
+          nullable: true
+          description: Arrival time (timestamp in milliseconds)
+        stazionePartenza:
+          type: string
+          nullable: true
+        stazioneArrivo:
+          type: string
+          nullable: true
+        statoTreno:
+          type: string
+          nullable: true
+        corrispondenze:
+          type: array
+          nullable: true
+          items:
+            type: string
+        servizi:
+          type: array
+          nullable: true
+          items:
+            type: string
+        ritardo:
+          type: integer
+          description: Current delay in minutes
+          example: 0
+        tipoProdotto:
+          type: string
+          description: Product type code
+          example: "100"
+        compOrarioPartenzaZeroEffettivo:
+          type: string
+          description: Effective departure time (HH:MM format)
+          example: "17:02"
+        compOrarioArrivoZeroEffettivo:
+          type: string
+          nullable: true
+          description: Effective arrival time (HH:MM format)
+        compOrarioPartenzaZero:
+          type: string
+          description: Departure time (HH:MM format)
+          example: "17:02"
+        compOrarioArrivoZero:
+          type: string
+          nullable: true
+          description: Arrival time (HH:MM format)
+        compOrarioArrivo:
+          type: string
+          nullable: true
+          description: Arrival time (HH:MM format)
+        compOrarioPartenza:
+          type: string
+          description: Departure time (HH:MM format)
+          example: "17:02"
+        compNumeroTreno:
+          type: string
+          description: Formatted train number with category
+          example: "FR 9584"
+        compOrientamento:
+          type: array
+          description: Train composition orientation in multiple languages
+          items:
+            type: string
+        compTipologiaTreno:
+          type: string
+          description: Train typology (e.g., "nazionale", "internazionale")
+        compClassRitardoTxt:
+          type: string
+          description: CSS class for delay text
+        compClassRitardoLine:
+          type: string
+          description: CSS class for delay line
+        compImgRitardo2:
+          type: string
+          description: URL for delay icon (alternative)
+        compImgRitardo:
+          type: string
+          description: URL for delay icon
+        compRitardo:
+          type: array
+          description: Delay description in multiple languages
+          items:
+            type: string
+        compRitardoAndamento:
+          type: array
+          description: Delay status description in multiple languages
+          items:
+            type: string
+        compInStazionePartenza:
+          type: array
+          description: In-station departure status in multiple languages
+          items:
+            type: string
+        compInStazioneArrivo:
+          type: array
+          description: In-station arrival status in multiple languages
+          items:
+            type: string
+        compOrarioEffettivoArrivo:
+          type: string
+          nullable: true
+          description: Effective arrival time
+        compDurata:
+          type: string
+          description: Journey duration
+        compImgCambiNumerazione:
+          type: string
+          description: HTML with status icons (riprogrammato.png, cancellazione.png)
+        materiale_label:
+          type: string
+          nullable: true
+          description: Rolling stock label
+        dataPartenzaTreno:
+          type: integer
+          format: int64
+          description: Train departure date (midnight timestamp)
+          example: 1678230000000
+        partenzaTreno:
+          type: integer
+          format: int64
+          description: Scheduled departure time (timestamp in milliseconds)
+          example: 1678291320000
+
+    AndamentoTreno:
+      type: object
+      description: |
+        Detailed train journey information with all stops and real-time status.
+        Train status is encoded in tipoTreno and provvedimento fields:
+        - tipoTreno='PG' + provvedimento=0: Regular train
+        - tipoTreno='ST' + provvedimento=1: Cancelled (fermate array is empty)
+        - tipoTreno in ('PP','SI','SF') + provvedimento in (0,2): Partially cancelled
+        - tipoTreno='DV' + provvedimento=3: Diverted
+      properties:
+        idOrigine:
+          type: string
+          description: Origin station code
+          example: "S01700"
+        idDestinazione:
+          type: string
+          description: Destination station code
+          example: "S00219"
+        origine:
+          type: string
+          description: Origin station name
+          example: "MILANO CENTRALE"
+        destinazione:
+          type: string
+          description: Destination station name
+          example: "TORINO PORTA NUOVA"
+        origineEstera:
+          type: string
+          nullable: true
+          description: Foreign origin station (for international trains)
+        destinazioneEstera:
+          type: string
+          nullable: true
+          description: Foreign destination station (for international trains)
+        oraPartenzaEstera:
+          type: string
+          nullable: true
+          description: Foreign departure time
+        oraArrivoEstera:
+          type: string
+          nullable: true
+          description: Foreign arrival time
+        orarioPartenza:
+          type: integer
+          format: int64
+          description: Scheduled departure time from origin (timestamp in milliseconds)
+          example: 1678291320000
+        orarioArrivo:
+          type: integer
+          format: int64
+          description: Scheduled arrival time at destination (timestamp in milliseconds)
+          example: 1678298520000
+        compOrarioPartenza:
+          type: string
+          description: Scheduled departure time (HH:MM format)
+          example: "17:02"
+        compOrarioArrivo:
+          type: string
+          description: Scheduled arrival time (HH:MM format)
+          example: "19:02"
+        numeroTreno:
+          type: integer
+          description: Train number
+          example: 9584
+        categoria:
+          type: string
+          description: Train category code (e.g., FR, IC, REG)
+          example: "FR"
+        categoriaDescrizione:
+          type: string
+          description: Train category full description
+          example: "Frecciarossa"
+        tipoTreno:
+          type: string
+          description: |
+            Train type code:
+            - PG: Regular (Programmato Garantito)
+            - ST: Cancelled (Soppresso Totalmente)
+            - PP/SI/SF: Partially cancelled (Soppresso Parzialmente)
+            - DV: Diverted (Deviato)
+          enum: [ "PG", "ST", "PP", "SI", "SF", "DV" ]
+          example: "PG"
+        provvedimento:
+          type: integer
+          description: |
+            Train status code:
+            - 0: Regular
+            - 1: Cancelled (fermate array will be empty)
+            - 2: Partially cancelled
+            - 3: Diverted
+          example: 0
+        subTitle:
+          type: string
+          nullable: true
+          description: |
+            Cancellation/deviation description for partially cancelled trains.
+            Example: "Treno cancellato da NOVI LIGURE a ALESSANDRIA. Parte da ALESSANDRIA"
+        oraUltimoRilevamento:
+          type: integer
+          format: int64
+          nullable: true
+          description: |
+            Last detection timestamp in milliseconds.
+            Null if train has not departed yet or is suppressed.
+        stazioneUltimoRilevamento:
+          type: string
+          nullable: true
+          description: |
+            Last detection station name.
+            Value is "--" if train has not departed yet or is suppressed.
+        ritardo:
+          type: integer
+          description: Current delay in minutes (integer)
+          example: 0
+        compRitardo:
+          type: array
+          description: Delay description in multiple languages
+          items:
+            type: string
+        compRitardoAndamento:
+          type: array
+          description: Delay status description in multiple languages
+          items:
+            type: string
+        compOrientamento:
+          type: array
+          description: Train composition orientation in multiple languages
+          items:
+            type: string
+        inStazione:
+          type: boolean
+          description: Whether train is currently in a station
+        haCambiNumero:
+          type: boolean
+          description: Whether train has changed its number
+        nonPartito:
+          type: boolean
+          description: Whether train has not departed from origin yet
+        circolante:
+          type: boolean
+          description: Whether train is currently running/circulating
+        fermate:
+          type: array
+          description: |
+            List of all stops for this train journey.
+            Empty array if train is completely cancelled (provvedimento=1).
+          items:
+            $ref: '#/components/schemas/Fermata'
+
+    Fermata:
+      type: object
+      description: |
+        Train stop information with arrival/departure times and platform details.
+        Note: A train can theoretically arrive and depart from different platforms at the same station.
+      properties:
+        id:
+          type: string
+          description: Station code
+          example: "S01700"
+        stazione:
+          type: string
+          description: Station name
+          example: "MILANO CENTRALE"
+        tipoFermata:
+          type: string
+          description: |
+            Stop type:
+            - P: Origin station (Partenza)
+            - A: Destination station (Arrivo)
+            - F: Intermediate stop (Fermata)
+          enum: [ "P", "A", "F" ]
+          example: "P"
+        progressivo:
+          type: integer
+          description: Sequential stop number in journey
+        arrivoReale:
+          type: integer
+          format: int64
+          nullable: true
+          description: Actual arrival time (timestamp in milliseconds, null if not arrived yet)
+        partenzaReale:
+          type: integer
+          format: int64
+          nullable: true
+          description: Actual departure time (timestamp in milliseconds, null if not departed yet)
+        arrivo_teorico:
+          type: integer
+          format: int64
+          nullable: true
+          description: Theoretical arrival time (timestamp in milliseconds, available since 2015-03-12)
+        partenza_teorica:
+          type: integer
+          format: int64
+          nullable: true
+          description: Theoretical departure time (timestamp in milliseconds, available since 2015-03-12)
+        programmata:
+          type: integer
+          format: int64
+          nullable: true
+          description: |
+            Scheduled time (timestamp in milliseconds).
+            For origin (P): scheduled departure time.
+            For other stops: scheduled arrival time.
+        programmataZero:
+          type: integer
+          format: int64
+          nullable: true
+          description: Rescheduled time (usually null unless train is rescheduled)
+        ritardo:
+          type: integer
+          description: |
+            Delay in minutes (integer).
+            For origin: departure delay.
+            For other stops: arrival delay.
+          example: 0
+        ritardoArrivo:
+          type: integer
+          description: Arrival delay in minutes
+          example: 0
+        ritardoPartenza:
+          type: integer
+          description: Departure delay in minutes
+          example: 0
+        actualFermataType:
+          type: integer
+          description: |
+            Stop status code:
+            - 0: Data unavailable (arrivoReale/partenzaReale are null)
+            - 1: Regular stop
+            - 2: Unplanned stop (not originally scheduled)
+            - 3: Cancelled stop (for partially cancelled trains)
+          example: 1
+        binarioEffettivoArrivoCodice:
+          type: string
+          nullable: true
+          description: Actual arrival platform code
+        binarioEffettivoPartenzaCodice:
+          type: string
+          nullable: true
+          description: Actual departure platform code
+        binarioProgrammatoArrivoCodice:
+          type: string
+          nullable: true
+          description: Scheduled arrival platform code
+        binarioProgrammatoPartenzaCodice:
+          type: string
+          nullable: true
+          description: Scheduled departure platform code
+        partenzaTeoricaZero:
+          type: integer
+          format: int64
+          nullable: true
+          description: Theoretical departure time zero (to be documented further)
+        arrivoTeoricoZero:
+          type: integer
+          format: int64
+          nullable: true
+          description: Theoretical arrival time zero (to be documented further)

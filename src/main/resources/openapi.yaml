@@ -30,6 +30,67 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Solution'
+  /stations/autocomplete:
+    get:
+      summary: Autocomplete station names
+      operationId: autocompleteStations
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of stations matching the query
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Station'
+  /departures/{from}:
+    get:
+      summary: Get departures from a station
+      operationId: getDepartures
+      parameters:
+        - name: from
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/StationId'
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: A list of trips departing from the specified station
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+  /runs/{runId}:
+    get:
+      summary: Get run details
+      operationId: getRunDetails
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/RunId'
+      responses:
+        '200':
+          description: Details of the specified run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
 components:
   schemas:
     Station:
@@ -81,6 +142,7 @@ components:
         run:
           $ref: '#/components/schemas/Run'
     Run:
+      description: A specific run of a train on a given date. Only one run per train per date exists.
       type: object
       required:
         - id
@@ -100,6 +162,7 @@ components:
     RunId:
       type: string
     Train:
+      description: Information about a specific train. The same train ID can be used across different runs.
       type: object
       required:
         - id
