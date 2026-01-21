@@ -8,12 +8,11 @@ import com.federicopeyrani.trainapis.model.Trip
 import com.federicopeyrani.trainapis.providers.Provider
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.api.TrainsApi
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.AndamentoTreno
+import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.Fermata
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.PartenzeArrivi
 import com.federicopeyrani.trainapis.utils.log
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.datetime.LocalDate
@@ -45,7 +44,6 @@ import kotlin.time.Instant
 @Service
 class ViaggiaTrenoClient(
     private val trainsApi: TrainsApi,
-    private val stationsCache: StationsCache,
 ) : Provider {
 
     companion object {
@@ -123,11 +121,12 @@ class ViaggiaTrenoClient(
         train: AndamentoTreno,
     ): Trip {
         val originStop = train.fermate?.firstOrNull() ?: error("Origin stop not found: ${trip.codOrigine}")
-        val thisStop = train.fermate.firstOrNull { it.id == from } ?: error("Stop not found for station: $from")
+        val fromStop = train.fermate.firstOrNull { it.id == from } ?: error("Stop not found for station: $from")
+        val lastStop = train.fermate.lastOrNull() ?: error("No stops found for train: ${trip.numeroTreno}")
 
-        val destinationStop =
-            (if (to != null) train.fermate.firstOrNull { it.id == to } else train.fermate.lastOrNull())
-                ?: error("Destination stop not found: ${trip.destinazione}")
+        val destinationStop = if (to != null) train.fermate.firstOrNull { it.id == to }
+            ?: error("Destination stop not found: ${trip.destinazione}")
+        else lastStop
 
         val tripDate = Instant.fromEpochMilliseconds(trip.dataPartenzaTreno).toLocalDateTime(zone)
 
@@ -145,18 +144,12 @@ class ViaggiaTrenoClient(
         )
 
         return Trip(
-            from = Station(
-                id = thisStop.id,
-                name = thisStop.stazione,
-            ),
-            to = Station(
-                id = destinationStop.id,
-                name = destinationStop.stazione,
-            ),
+            from = fromStop.toStation(),
+            to = destinationStop.toStation(),
             departureTime = Timing(
                 scheduled = tripDepartureTime.toInstant(zone).toEpochMilliseconds().toOffsetDateTime(),
-                expected = thisStop.partenzaTeorica?.toOffsetDateTime(),
-                actual = thisStop.partenzaReale?.toOffsetDateTime(),
+                expected = fromStop.partenzaTeorica?.toOffsetDateTime(),
+                actual = fromStop.partenzaReale?.toOffsetDateTime(),
             ),
             arrivalTime = destinationTiming,
             run = Run(
@@ -168,26 +161,27 @@ class ViaggiaTrenoClient(
                 ),
                 destinationArrivalTime = destinationTiming,
                 train = Train(
-                    id = trip.numeroTreno.toString(),
-                    origin = stationsCache.getStationByName(train.origine)
-                        ?: error("Station not found: ${train.origine}"),
-                    destination = stationsCache.getStationByName(trip.destinazione)
-                        ?: error("Station not found: ${trip.destinazione}"),
+                    id = train.numeroTreno.toString(),
+                    origin = originStop.toStation(),
+                    destination = lastStop.toStation(),
                 ),
             ),
         )
     }
 
-    private fun Long.toOffsetDateTime(): OffsetDateTime {
-        return OffsetDateTime.ofInstant(
-            java.time.Instant.ofEpochMilli(this),
-            zone.toJavaZoneId()
-        )
-    }
+    private fun Long.toOffsetDateTime() = OffsetDateTime.ofInstant(
+        java.time.Instant.ofEpochMilli(this),
+        zone.toJavaZoneId()
+    )
 
     private fun String.parseAsTimeAt(date: LocalDate): LocalDateTime {
         val time = timeFormatter.parse(this)
         return time.atDate(date)
     }
+
+    private fun Fermata.toStation() = Station(
+        id = this.id,
+        name = this.stazione,
+    )
 }
 

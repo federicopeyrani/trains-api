@@ -7,9 +7,6 @@ import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import org.springframework.cache.CacheManager
-import org.springframework.cache.annotation.EnableCaching
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
@@ -20,7 +17,6 @@ import org.springframework.context.annotation.Configuration
  * for dependency injection.
  */
 @Configuration
-@EnableCaching
 class ViaggiaTrenoConfig {
 
     @Bean
@@ -48,8 +44,5 @@ class ViaggiaTrenoConfig {
             it.install(Logging) { level = LogLevel.ALL }
         }
     }
-
-    @Bean
-    fun CacheManager(): CacheManager = ConcurrentMapCacheManager()
 }
 
