@@ -19,15 +19,11 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.toKotlinInstant
 
 @RestController
+@OptIn(ExperimentalTime::class)
 class TrainsController(
     private val tripsService: TripsService,
 ) : DefaultApi {
 
-    override fun autocompleteStations(query: String): ResponseEntity<Flow<Station>> {
-        TODO("Not yet implemented")
-    }
-
-    @OptIn(ExperimentalTime::class)
     override fun getDepartures(from: String, date: OffsetDateTime?): ResponseEntity<Flow<Trip>> {
         val parsedDate = date?.toInstant()
             ?.toKotlinInstant()
@@ -40,12 +36,14 @@ class TrainsController(
         return ResponseEntity.ok(departures)
     }
 
-    override suspend fun getRunDetails(runId: String): ResponseEntity<Run> {
-        TODO("Not yet implemented")
-    }
+    override fun getTrips(from: String, to: String, date: OffsetDateTime?): ResponseEntity<Flow<Trip>> {
+        val parsedDate = date?.toInstant()
+            ?.toKotlinInstant()
+            ?.toLocalDateTime(TimeZone.currentSystemDefault())
 
-    override fun getSolutions(from: String, to: String): ResponseEntity<Flow<Solution>> {
-        TODO("Not yet implemented")
+        val trips = tripsService.getTrips(from, to, parsedDate)
+
+        return ResponseEntity.ok(trips)
     }
 }
 
