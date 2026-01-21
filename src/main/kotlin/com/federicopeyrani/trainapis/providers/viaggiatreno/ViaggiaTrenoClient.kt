@@ -2,13 +2,17 @@ package com.federicopeyrani.trainapis.providers.viaggiatreno
 
 import com.federicopeyrani.trainapis.model.Run
 import com.federicopeyrani.trainapis.model.Station
+import com.federicopeyrani.trainapis.model.Timing
 import com.federicopeyrani.trainapis.model.Train
 import com.federicopeyrani.trainapis.model.Trip
 import com.federicopeyrani.trainapis.providers.Provider
-import com.federicopeyrani.trainapis.providers.viaggiatreno.client.api.StationsApi
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.api.TrainsApi
+import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.PartenzeArrivi
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atDate
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeComponents
 import kotlinx.datetime.format.DayOfWeekNames
@@ -17,12 +21,12 @@ import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.byUnicodePattern
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toJavaZoneId
+import kotlinx.datetime.toLocalDateTime
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.OffsetDateTime
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-import kotlin.time.toJavaInstant
 
 
 /**
@@ -51,6 +55,12 @@ class ViaggiaTrenoClient(
             byUnicodePattern("dd yyyy HH:mm:ss 'GMT'Z")
         }
 
+        private val timeFormatter = LocalTime.Format {
+            hour()
+            chars(":")
+            minute()
+        }
+
         private val zone = TimeZone.of("Europe/Rome")
     }
 
@@ -68,43 +78,64 @@ class ViaggiaTrenoClient(
         log.info("Received ${response.body().size} departures from ViaggiaTreno")
 
         return response.body()
-            .take(1)
-            .map {
-                val train = trainsApi
-                    .andamentoTreno(
-                        it.codOrigine ?: error("Missing codOrigine"),
-                        it.numeroTreno ?: error("Missing numeroTreno"),
-                        it.dataPartenzaTreno ?: error("Missing dataPartenzaTreno")
-                    )
-                    .body()
+            .take(10)
+            .map { trip -> expandTripDetails(from, trip) }
+    }
 
-                val finalArrivalDate = train.orarioArrivo?.toOffsetDateTime() ?: OffsetDateTime.now()
+    @OptIn(ExperimentalTime::class)
+    private suspend fun expandTripDetails(from: String, trip: PartenzeArrivi): Trip {
+        val train = trainsApi
+            .andamentoTreno(trip.codOrigine, trip.numeroTreno, trip.dataPartenzaTreno)
+            .body()
 
-                Trip(
-                    from = stationsCache.getStationByName(from) ?: Station(id = from, name = it.origine ?: ""),
-                    to = it.destinazione
-                        ?.let { stationsCache.getStationByName(it) }
-                        ?: error("Station not found: ${it.destinazione}"),
-                    departureTime = it.partenzaTreno
-                        ?.toOffsetDateTime()
-                        ?: OffsetDateTime.now(),
-                    arrivalTime = finalArrivalDate,
-                    run = Run(
-                        id = "${it.numeroTreno}_${it.dataPartenzaTreno}",
-                        originDepartureTime = it.orarioPartenza?.toOffsetDateTime()
-                            ?: OffsetDateTime.now(),
-                        finalArrivalTime = finalArrivalDate,
-                        train = Train(
-                            id = it.numeroTreno.toString(),
-                            origin = train.origine
-                                ?.let { stationsCache.getStationByName(it) }
-                                ?: error("Station not found: ${train.origine}"),
-                            destination = stationsCache.getStationByName(it.destinazione)
-                                ?: error("Station not found: ${it.destinazione}"),
-                        )
-                    )
-                )
-            }
+        val originStop = train.fermate?.firstOrNull() ?: error("Origin stop not found: ${trip.codOrigine}")
+        val destinationStop = train.fermate.lastOrNull() ?: error("Destination stop not found: ${trip.destinazione}")
+        val thisStop = train.fermate.firstOrNull { it.id == from } ?: error("Stop not found for station: $from")
+
+        val tripDate = Instant.fromEpochMilliseconds(trip.dataPartenzaTreno).toLocalDateTime(zone)
+
+        val runExpectedArrivalTime = train.orarioArrivo.toOffsetDateTime()
+        val tripDepartureTime = trip.compOrarioPartenza.parseAsTimeAt(tripDate.date)
+
+        val destinationTiming = Timing(
+            scheduled = runExpectedArrivalTime,
+            expected = train.compOrarioArrivoZeroEffettivo
+                ?.parseAsTimeAt(tripDate.date)
+                ?.toInstant(zone)
+                ?.toEpochMilliseconds()
+                ?.toOffsetDateTime(),
+            actual = destinationStop.arrivoReale?.toOffsetDateTime(),
+        )
+
+        return Trip(
+            from = Station(
+                id = thisStop.id,
+                name = thisStop.stazione,
+            ),
+            to = stationsCache.getStationByName(trip.destinazione) ?: error("Station not found: ${trip.destinazione}"),
+            departureTime = Timing(
+                scheduled = tripDepartureTime.toInstant(zone).toEpochMilliseconds().toOffsetDateTime(),
+                expected = thisStop.partenzaTeorica?.toOffsetDateTime(),
+                actual = thisStop.partenzaReale?.toOffsetDateTime(),
+            ),
+            arrivalTime = destinationTiming,
+            run = Run(
+                id = "${trip.numeroTreno}_${trip.dataPartenzaTreno}",
+                originDepartureTime = Timing(
+                    scheduled = train.orarioPartenza.toOffsetDateTime(),
+                    expected = originStop.partenzaTeorica?.toOffsetDateTime(),
+                    actual = originStop.partenzaReale?.toOffsetDateTime(),
+                ),
+                destinationArrivalTime = destinationTiming,
+                train = Train(
+                    id = trip.numeroTreno.toString(),
+                    origin = stationsCache.getStationByName(train.origine)
+                        ?: error("Station not found: ${train.origine}"),
+                    destination = stationsCache.getStationByName(trip.destinazione)
+                        ?: error("Station not found: ${trip.destinazione}"),
+                ),
+            ),
+        )
     }
 
     private fun Long.toOffsetDateTime(): OffsetDateTime {
@@ -112,6 +143,11 @@ class ViaggiaTrenoClient(
             java.time.Instant.ofEpochMilli(this),
             zone.toJavaZoneId()
         )
+    }
+
+    private fun String.parseAsTimeAt(date: LocalDate): LocalDateTime {
+        val time = timeFormatter.parse(this)
+        return time.atDate(date)
     }
 }
 

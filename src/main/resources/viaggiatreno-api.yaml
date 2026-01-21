@@ -439,6 +439,13 @@ components:
         - provvedimento: 0=regular, 1=cancelled, 2=partially cancelled
         - riprogrammazione: 'Y' indicates rescheduled train
         - compImgCambiNumerazione: Contains HTML for status icons
+      required:
+        - destinazione
+        - orarioPartenza
+        - codOrigine
+        - numeroTreno
+        - dataPartenzaTreno
+        - compOrarioPartenza
       properties:
         numeroTreno:
           type: integer
@@ -582,7 +589,7 @@ components:
         orarioPartenza:
           type: integer
           format: int64
-          description: Departure time (timestamp in milliseconds)
+          description: Scheduled departure time from origin (timestamp in milliseconds)
           example: 1678291320000
         orarioArrivo:
           type: integer
@@ -706,7 +713,7 @@ components:
         partenzaTreno:
           type: integer
           format: int64
-          description: Scheduled departure time (timestamp in milliseconds)
+          description: Effective departure time from origin (timestamp in milliseconds)
           example: 1678291320000
 
     AndamentoTreno:
@@ -718,6 +725,11 @@ components:
         - tipoTreno='ST' + provvedimento=1: Cancelled (fermate array is empty)
         - tipoTreno in ('PP','SI','SF') + provvedimento in (0,2): Partially cancelled
         - tipoTreno='DV' + provvedimento=3: Diverted
+      required:
+        - numeroTreno
+        - origine
+        - orarioPartenza
+        - orarioArrivo
       properties:
         idOrigine:
           type: string
@@ -857,12 +869,20 @@ components:
             Empty array if train is completely cancelled (provvedimento=1).
           items:
             $ref: '#/components/schemas/Fermata'
+        compOrarioArrivoZeroEffettivo:
+            type: string
+            nullable: true
+            description: Effective arrival time at destination (HH:MM format)
+
 
     Fermata:
       type: object
       description: |
         Train stop information with arrival/departure times and platform details.
         Note: A train can theoretically arrive and depart from different platforms at the same station.
+      required:
+        - id
+        - stazione
       properties:
         id:
           type: string

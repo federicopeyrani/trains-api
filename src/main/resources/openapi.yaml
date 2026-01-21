@@ -134,11 +134,9 @@ components:
         to:
           $ref: '#/components/schemas/Station'
         departureTime:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/Timing'
         arrivalTime:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/Timing'
         run:
           $ref: '#/components/schemas/Run'
     Run:
@@ -147,20 +145,33 @@ components:
       required:
         - id
         - originDepartureTime
-        - finalArrivalTime
+        - destinationArrivalTime
+        - train
       properties:
         id:
           $ref: '#/components/schemas/RunId'
         originDepartureTime:
-          type: string
-          format: date-time
-        finalArrivalTime:
-          type: string
-          format: date-time
+          $ref: '#/components/schemas/Timing'
+        destinationArrivalTime:
+          $ref: '#/components/schemas/Timing'
         train:
           $ref: '#/components/schemas/Train'
     RunId:
       type: string
+    Timing:
+      type: object
+      required:
+        - scheduled
+      properties:
+        scheduled:
+          type: string
+          format: date-time
+        expected:
+          type: string
+          format: date-time
+        actual:
+          type: string
+          format: date-time
     Train:
       description: Information about a specific train. The same train ID can be used across different runs.
       type: object
