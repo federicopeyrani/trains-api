@@ -19,9 +19,9 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class ViaggiaTrenoConfig {
 
-    @Bean
-    fun json() = Json {
+    private val json = Json {
         ignoreUnknownKeys = true
+        coerceInputValues = true
     }
 
     /**
@@ -30,7 +30,7 @@ class ViaggiaTrenoConfig {
      * @return TrainsApi instance for train-related endpoints
      */
     @Bean
-    fun trainsApi(json: Json): TrainsApi {
+    fun trainsApi(): TrainsApi {
         return TrainsApi {
             it.install(ContentNegotiation) { json(json) }
             it.install(Logging) { level = LogLevel.ALL }
@@ -38,7 +38,7 @@ class ViaggiaTrenoConfig {
     }
 
     @Bean
-    fun stationsApi(json: Json): StationsApi {
+    fun stationsApi(): StationsApi {
         return StationsApi {
             it.install(ContentNegotiation) { json(json) }
             it.install(Logging) { level = LogLevel.ALL }

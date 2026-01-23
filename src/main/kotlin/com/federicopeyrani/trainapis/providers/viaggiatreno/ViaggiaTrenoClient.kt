@@ -19,17 +19,16 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.UtcOffset
 import kotlinx.datetime.atDate
 import kotlinx.datetime.format
 import kotlinx.datetime.format.DateTimeComponents
 import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.MonthNames
-import kotlinx.datetime.format.byUnicodePattern
+import kotlinx.datetime.format.char
 import kotlinx.datetime.toInstant
-import kotlinx.datetime.toJavaZoneId
 import kotlinx.datetime.toLocalDateTime
 import org.springframework.stereotype.Service
-import java.time.OffsetDateTime
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -53,10 +52,21 @@ class ViaggiaTrenoClient(
         // Format date as 'Tue Jan 20 2026 22:21:07 GMT+0100
         private val dateFormatter = DateTimeComponents.Format {
             dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED)
-            chars(" ")
+            char(' ')
             monthName(MonthNames.ENGLISH_ABBREVIATED)
-            chars(" ")
-            byUnicodePattern("dd yyyy HH:mm:ss 'GMT'Z")
+            char(' ')
+            day()
+            char(' ')
+            year()
+            char(' ')
+            hour()
+            char(':')
+            minute()
+            char(':')
+            second()
+            char(' ')
+            chars("GMT")
+            offset(UtcOffset.Formats.FOUR_DIGITS)
         }
 
         private val timeFormatter = LocalTime.Format {
@@ -169,10 +179,9 @@ class ViaggiaTrenoClient(
         )
     }
 
-    private fun Long.toOffsetDateTime() = OffsetDateTime.ofInstant(
-        java.time.Instant.ofEpochMilli(this),
-        zone.toJavaZoneId()
-    )
+    private fun Long.toOffsetDateTime() = Instant
+        .fromEpochMilliseconds(this)
+        .toLocalDateTime(zone)
 
     private fun String.parseAsTimeAt(date: LocalDate): LocalDateTime {
         val time = timeFormatter.parse(this)

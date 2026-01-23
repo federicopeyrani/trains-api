@@ -1,10 +1,12 @@
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
 plugins {
     kotlin("jvm") version "2.2.21"
     kotlin("plugin.spring") version "2.2.21"
+    kotlin("plugin.serialization") version "2.3.0"
     id("org.springframework.boot") version "4.0.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.openapi.generator") version "7.19.0"
-    kotlin("plugin.serialization") version "2.2.21"
 }
 
 group = "com.federicopeyrani"
@@ -27,7 +29,6 @@ dependencies {
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
-    implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("io.swagger.core.v3:swagger-annotations:2.2.26")
     implementation("jakarta.validation:jakarta.validation-api")
     implementation("jakarta.annotation:jakarta.annotation-api")
@@ -35,12 +36,7 @@ dependencies {
     // OkHttp client dependencies for ViaggiaTreno API client
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.18.2")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.2")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
-
-    developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
     testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
@@ -58,6 +54,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.25")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
 }
 
@@ -71,13 +68,13 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-tasks.named("openApiGenerate", org.openapitools.generator.gradle.plugin.tasks.GenerateTask::class) {
-    generatorName.set("kotlin-spring")
-    inputSpec.set("$rootDir/src/main/resources/openapi.yaml")
-    outputDir.set(layout.buildDirectory.dir("generated").get().asFile.path)
-    apiPackage.set("com.federicopeyrani.trainapis.api")
-    modelPackage.set("com.federicopeyrani.trainapis.model")
-    configOptions.set(mapOf(
+tasks.named("openApiGenerate", GenerateTask::class) {
+    generatorName = "kotlin-spring"
+    inputSpec = "$rootDir/src/main/resources/openapi.yaml"
+    outputDir = layout.buildDirectory.dir("generated").get().asFile.path
+    apiPackage = "com.federicopeyrani.trainapis.api"
+    modelPackage = "com.federicopeyrani.trainapis.model"
+    configOptions = mapOf(
         "interfaceOnly" to "true",
         "useSpringBoot3" to "true",
         "reactive" to "true",
@@ -86,22 +83,30 @@ tasks.named("openApiGenerate", org.openapitools.generator.gradle.plugin.tasks.Ge
         "documentationProvider" to "none",
         "enumPropertyNaming" to "UPPERCASE",
         "serializationLibrary" to "jackson",
-        "useCoroutines" to "true",
-    ))
+        "declarativeInterfaceWrapResponses" to "true",
+        "declarativeInterfaceReactiveMode" to "coroutines",
+        "additionalModelTypeAnnotations" to "@kotlinx.serialization.Serializable",
+    )
+    typeMappings = mapOf(
+        "DateTime" to "LocalDateTime"
+    )
+    importMappings = mapOf(
+        "LocalDateTime" to "kotlinx.datetime.LocalDateTime"
+    )
 }
 
-tasks.register("openApiGenerateViaggiatreno", org.openapitools.generator.gradle.plugin.tasks.GenerateTask::class) {
-    generatorName.set("kotlin")
-    inputSpec.set("$rootDir/src/main/resources/viaggiatreno-api.yaml")
-    outputDir.set(layout.buildDirectory.dir("generated-viaggiatreno").get().asFile.path)
-    apiPackage.set("com.federicopeyrani.trainapis.providers.viaggiatreno.client.api")
-    modelPackage.set("com.federicopeyrani.trainapis.providers.viaggiatreno.client.model")
-    configOptions.set(mapOf(
+tasks.register("openApiGenerateViaggiatreno", GenerateTask::class) {
+    generatorName = "kotlin"
+    inputSpec = "$rootDir/src/main/resources/viaggiatreno-api.yaml"
+    outputDir = layout.buildDirectory.dir("generated-viaggiatreno").get().asFile.path
+    apiPackage = "com.federicopeyrani.trainapis.providers.viaggiatreno.client.api"
+    modelPackage = "com.federicopeyrani.trainapis.providers.viaggiatreno.client.model"
+    configOptions = mapOf(
         "dateLibrary" to "kotlinx-datetime",
         "serializationLibrary" to "kotlinx_serialization",
         "enumPropertyNaming" to "UPPERCASE",
-        "library" to "jvm-ktor"
-    ))
+        "library" to "jvm-ktor",
+    )
 }
 
 sourceSets {
