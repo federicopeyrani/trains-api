@@ -82,18 +82,20 @@ class ViaggiaTrenoClient(
 
     override suspend fun getDepartures(from: String, date: LocalDateTime) = getDeparturesRaw(from, date)
         .map { trip ->
-            val train = runCatching { getTrain(trip) }.getOrNull()
+            val train = getTrainOrNull(trip)
             getTripDetails(from = from, trip = trip, train = train)
         }
 
     override fun getTrips(from: String, to: String, date: LocalDateTime): Flow<Trip> = flow {
         getDeparturesRaw(from, date)
-            .filter { it.provvedimento != 1 } // Filter out canceled trains
             .asFlow()
             .mapNotNull { departure ->
-                val train = getTrain(departure)
+                val train = getTrainOrNull(departure) ?: run {
+                    log.warn("Skipping train ${departure.numeroTreno} as train details could not be fetched")
+                    return@mapNotNull null
+                }
 
-                if (train.fermate?.firstOrNull { it.id == to } == null) {
+                if (train.fermate?.any { it.id == to } ?: false) {
                     log.info("Skipping train ${departure.numeroTreno} as it does not stop at $to")
                     return@mapNotNull null
                 }
@@ -130,6 +132,11 @@ class ViaggiaTrenoClient(
         return response.body()
     }
 
+    private suspend fun getTrainOrNull(trip: PartenzeArrivi): AndamentoTreno? =
+        runCatching { getTrain(trip) }
+            .onFailure { log.warn("Failed to fetch train details for train ${trip.numeroTreno}", it) }
+            .getOrNull()
+
     private suspend fun getTrain(trip: PartenzeArrivi) = trainsApi
         .andamentoTreno(trip.codOrigine, trip.numeroTreno, trip.dataPartenzaTreno)
         .body()
@@ -142,7 +149,7 @@ class ViaggiaTrenoClient(
     ): Trip {
         val runExpectedArrivalTime = train?.orarioArrivo?.asLocalDateTime()
             ?: trip.orarioArrivo?.asLocalDateTime()
-            ?: error("Cannot determine expected arrival time")
+            ?: error("Cannot determine expected arrival time for trip ${trip.numeroTreno}")
 
         val fromStop = train?.fermate?.firstOrNull { it.id == from }
         val lastStop = train?.fermate?.lastOrNull()
@@ -155,7 +162,7 @@ class ViaggiaTrenoClient(
         return Trip(
             from = fromStop?.toStation() ?: Station(id = from, name = "Unknown"),
             to = destinationStop?.toStation() ?: Station(
-                id = trip.codDestinazione ?: error("Destination code is null"),
+                id = trip.codDestinazione ?: error("Destination code is null for trip ${trip.numeroTreno}"),
                 name = trip.destinazione
             ),
             departureTime = Timing(
@@ -183,7 +190,7 @@ class ViaggiaTrenoClient(
         departureDateAtMidnight: Long,
         train: AndamentoTreno,
     ): Run {
-        val originStop = train.fermate?.first() ?: error("Train has no stops")
+        val originStop = train.fermate?.first() ?: error("Train ${train.numeroTreno} has no stops")
         val lastStop = train.fermate.last()
 
         val tripDate = departureDateAtMidnight.asLocalDateTime().date
