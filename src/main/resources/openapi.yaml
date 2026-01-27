@@ -32,6 +32,11 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Trip'
+            text/event-stream:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
 
   /trips/{from}/{to}:
     get:
@@ -59,6 +64,51 @@ paths:
           description: A list of trips between the specified stations
           content:
             application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+            text/event-stream:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+
+  /trips/all:
+    get:
+      summary: Get trips between multiple stations
+      operationId: getAllTrips
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/StationId'
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/StationId'
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: A list of trips between the specified stations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+            text/event-stream:
               schema:
                 type: array
                 items:

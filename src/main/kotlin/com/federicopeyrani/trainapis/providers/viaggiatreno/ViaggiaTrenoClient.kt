@@ -13,7 +13,6 @@ import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.Fermata
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.PartenzeArrivi
 import com.federicopeyrani.trainapis.utils.log
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapMerge
@@ -105,8 +104,8 @@ class ViaggiaTrenoClient(
                         return@flow
                     }
 
-                    if (train.fermate?.any { it.id == to } ?: false) {
-                        log.info("Skipping train ${trip.numeroTreno} as it does not stop at $to")
+                    if (train.fermate?.none { it.id == to } ?: true) {
+                        log.debug("Skipping train ${trip.numeroTreno} as it does not stop at $to")
                         return@flow
                     }
 
@@ -138,7 +137,6 @@ class ViaggiaTrenoClient(
 
         val response = trainsApi.getPartenze(from, formattedDate)
 
-        log.info("Status code: ${response.status}")
         log.info("Received ${response.body().size} departures from ViaggiaTreno")
 
         return response.body()
@@ -174,7 +172,9 @@ class ViaggiaTrenoClient(
         return Trip(
             from = fromStop?.toStation() ?: Station(id = from, name = "Unknown"),
             to = destinationStop?.toStation() ?: Station(
-                id = trip.codDestinazione ?: error("Destination code is null for trip ${trip.numeroTreno}"),
+                id = trip.codDestinazione ?: run {
+                    error("Destination code is null for trip ${trip.numeroTreno}")
+                },
                 name = trip.destinazione
             ),
             departureTime = Timing(

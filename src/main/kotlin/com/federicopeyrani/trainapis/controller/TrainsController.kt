@@ -26,6 +26,11 @@ class TrainsController(
         return ResponseEntity.ok(trips)
     }
 
+    override fun getAllTrips(from: List<String>, to: List<String>, date: LocalDateTime?): ResponseEntity<Flow<Trip>> {
+        val trips = tripsService.getAllTrips(from, to, date)
+        return ResponseEntity.ok(trips)
+    }
+
     override suspend fun getRun(runId: String): ResponseEntity<Run> {
         val run = tripsService.getRun(runId)
         return ResponseEntity.ok(run)
