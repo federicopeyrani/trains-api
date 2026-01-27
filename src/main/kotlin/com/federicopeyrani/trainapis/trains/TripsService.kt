@@ -21,4 +21,7 @@ class TripsService(
 
     fun getTrips(from: String, to: String, date: LocalDateTime?) =
         provider.getTrips(from, to, date ?: Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()))
+
+    suspend fun getRun(runId: String) = provider.getRun(runId)
+
 }

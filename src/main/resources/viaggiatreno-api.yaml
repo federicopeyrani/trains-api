@@ -474,7 +474,7 @@ components:
         codDestinazione:
           type: string
           nullable: true
-          description: Destination station code
+          description: Destination station code. Always `null` in practice.
         origineEstera:
           type: string
           nullable: true
@@ -716,6 +716,12 @@ components:
           format: int64
           description: Effective departure time from origin (timestamp in milliseconds)
           example: 1678291320000
+        ultimoRilev:
+          type: integer
+          format: int64
+          nullable: true
+          description: Last detection timestamp (milliseconds)
+          example: 1769544526000
 
     AndamentoTreno:
       type: object
@@ -875,7 +881,12 @@ components:
             type: string
             nullable: true
             description: Effective arrival time at destination (HH:MM format)
-
+        ultimoRilev:
+          type: integer
+          format: int64
+          nullable: true
+          description: Last detection timestamp (milliseconds)
+          example: 1769544526000
 
     Fermata:
       type: object

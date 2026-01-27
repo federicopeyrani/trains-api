@@ -4,7 +4,7 @@ info:
   description: Train APIs
   version: 1.0.0
 servers:
-  - url: 'https://api.example.com'
+  - url: 'http://localhost:8081'
 paths:
 
   /departures/{from}:
@@ -63,6 +63,24 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Trip'
+
+  /runs/{runId}:
+    get:
+      summary: Get details of a specific run
+      operationId: getRun
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/RunId'
+      responses:
+        '200':
+          description: Details of the specified run
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
 components:
   schemas:
     Station:
@@ -82,9 +100,8 @@ components:
       required:
         - from
         - to
-        - departureTime
-        - arrivalTime
         - status
+        - lastUpdate
       properties:
         from:
           $ref: '#/components/schemas/Station'
@@ -94,14 +111,12 @@ components:
           $ref: '#/components/schemas/Timing'
         arrivalTime:
           $ref: '#/components/schemas/Timing'
+        lastUpdate:
+          $ref: '#/components/schemas/LastUpdated'
+        lastUpdateFromProvider:
+          $ref: '#/components/schemas/LastUpdated'
         run:
           $ref: '#/components/schemas/Run'
-        status:
-          type: string
-          enum:
-            - on-time
-            - delayed
-            - cancelled
     Run:
       description: A specific run of a train on a given date. Only one run per train per date exists.
       type: object
@@ -110,6 +125,8 @@ components:
         - originDepartureTime
         - destinationArrivalTime
         - train
+        - status
+        - lastUpdate
       properties:
         id:
           $ref: '#/components/schemas/RunId'
@@ -119,6 +136,12 @@ components:
           $ref: '#/components/schemas/Timing'
         train:
           $ref: '#/components/schemas/Train'
+        status:
+          $ref: '#/components/schemas/Status'
+        lastUpdate:
+          $ref: '#/components/schemas/LastUpdated'
+        lastUpdateFromProvider:
+          $ref: '#/components/schemas/LastUpdated'
     RunId:
       type: string
     Timing:
@@ -135,6 +158,15 @@ components:
         actual:
           type: string
           format: date-time
+    Status:
+      type: string
+      enum:
+        - on-time
+        - delayed
+        - cancelled
+    LastUpdated:
+      type: string
+      format: date-time
     Train:
       description: Information about a specific train. The same train ID can be used across different runs.
       type: object

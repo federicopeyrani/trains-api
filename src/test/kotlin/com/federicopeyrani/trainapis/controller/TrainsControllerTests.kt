@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
+import org.springframework.test.json.JsonCompareMode
 import org.springframework.test.web.reactive.server.WebTestClient
 import kotlin.test.Test
 
@@ -43,7 +44,7 @@ class TrainsControllerTests(
                     expected = LocalDateTime(2026, 1, 23, 23, 20),
                     actual = null,
                 ),
-                status = Trip.Status.ON_TIME,
+                lastUpdate = LocalDateTime(2026, 1, 23, 23, 15),
                 run = null,
             )
         )
@@ -59,6 +60,6 @@ class TrainsControllerTests(
             .expectStatus()
             .isOk
             .expectBody()
-            .json(expectedJson)
+            .json(expectedJson, JsonCompareMode.STRICT)
     }
 }

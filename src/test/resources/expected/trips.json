@@ -17,6 +17,6 @@
       "scheduled": "2026-01-23T23:15",
       "expected": "2026-01-23T23:20"
     },
-    "status": "ON_TIME"
+    "lastUpdate": "2026-01-23T23:15"
   }
 ]
