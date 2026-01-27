@@ -12,10 +12,12 @@ import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.Andamen
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.Fermata
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.PartenzeArrivi
 import com.federicopeyrani.trainapis.utils.log
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
@@ -41,7 +43,7 @@ import kotlin.time.Instant
  * This is a wrapper around the auto-generated OpenAPI client that provides
  * a Spring-friendly interface for the ViaggiaTreno API.
  */
-@OptIn(ExperimentalTime::class)
+@OptIn(ExperimentalTime::class, ExperimentalCoroutinesApi::class)
 @Service
 class ViaggiaTrenoClient(
     private val trainsApi: TrainsApi,
@@ -80,29 +82,39 @@ class ViaggiaTrenoClient(
         private val zone = TimeZone.of("Europe/Rome")
     }
 
-    override suspend fun getDepartures(from: String, date: LocalDateTime) = getDeparturesRaw(from, date)
-        .map { trip ->
-            val train = getTrainOrNull(trip)
-            getTripDetails(from = from, trip = trip, train = train)
-        }
+    override fun getDepartures(from: String, date: LocalDateTime) = flow {
+        getDeparturesRaw(from, date)
+            .asFlow()
+            .flatMapMerge(concurrency = 10) { trip ->
+                flow {
+                    val train = getTrainOrNull(trip)
+                    val details = getTripDetails(from = from, trip = trip, train = train)
+                    emit(details)
+                }
+            }
+            .collect(this::emit)
+    }
 
     override fun getTrips(from: String, to: String, date: LocalDateTime): Flow<Trip> = flow {
         getDeparturesRaw(from, date)
             .asFlow()
-            .mapNotNull { departure ->
-                val train = getTrainOrNull(departure) ?: run {
-                    log.warn("Skipping train ${departure.numeroTreno} as train details could not be fetched")
-                    return@mapNotNull null
+            .flatMapMerge(concurrency = 10) { trip ->
+                flow {
+                    val train = getTrainOrNull(trip) ?: run {
+                        log.warn("Skipping train ${trip.numeroTreno} as train details could not be fetched")
+                        return@flow
+                    }
+
+                    if (train.fermate?.any { it.id == to } ?: false) {
+                        log.info("Skipping train ${trip.numeroTreno} as it does not stop at $to")
+                        return@flow
+                    }
+
+                    log.info("Expanding trip details for train ${trip.numeroTreno} from $from to $to")
+
+                    val details = getTripDetails(from = from, to = to, trip = trip, train = train)
+                    emit(details)
                 }
-
-                if (train.fermate?.any { it.id == to } ?: false) {
-                    log.info("Skipping train ${departure.numeroTreno} as it does not stop at $to")
-                    return@mapNotNull null
-                }
-
-                log.info("Expanding trip details for train ${departure.numeroTreno} from $from to $to")
-
-                getTripDetails(from = from, to = to, trip = departure, train = train)
             }
             .collect(this::emit)
     }

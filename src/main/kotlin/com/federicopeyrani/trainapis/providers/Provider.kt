@@ -7,9 +7,9 @@ import kotlinx.datetime.LocalDateTime
 
 interface Provider {
 
-   suspend fun getDepartures(from: String, date: LocalDateTime): List<Trip>
+    fun getDepartures(from: String, date: LocalDateTime): Flow<Trip>
 
-   fun getTrips(from: String, to: String, date: LocalDateTime): Flow<Trip>
+    fun getTrips(from: String, to: String, date: LocalDateTime): Flow<Trip>
 
-   suspend fun getRun(runId: String): Run
+    suspend fun getRun(runId: String): Run
 }

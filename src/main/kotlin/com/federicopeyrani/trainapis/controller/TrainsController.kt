@@ -5,9 +5,6 @@ import com.federicopeyrani.trainapis.model.Run
 import com.federicopeyrani.trainapis.model.Trip
 import com.federicopeyrani.trainapis.trains.TripsService
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.LocalDateTime
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RestController
@@ -20,10 +17,7 @@ class TrainsController(
 ) : DefaultApi {
 
     override fun getDepartures(from: String, date: LocalDateTime?): ResponseEntity<Flow<Trip>> {
-        val departures = flow {
-            emitAll(tripsService.getDepartures(from, date).asFlow())
-        }
-
+        val departures = tripsService.getDepartures(from, date)
         return ResponseEntity.ok(departures)
     }
 
