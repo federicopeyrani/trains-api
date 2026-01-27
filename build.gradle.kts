@@ -28,7 +28,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("io.swagger.core.v3:swagger-annotations:2.2.26")
     implementation("jakarta.validation:jakarta.validation-api")
     implementation("jakarta.annotation:jakarta.annotation-api")
@@ -51,11 +53,18 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.3")
     implementation("io.ktor:ktor-client-java:3.3.3")
     implementation("io.ktor:ktor-client-logging:3.3.3")
+    testImplementation("io.ktor:ktor-client-mock:3.3.3")
     implementation("ch.qos.logback:logback-classic:1.5.25")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+
+    // Test
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("io.projectreactor:reactor-test")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("com.ninja-squad:springmockk:4.0.2")
 }
 
 kotlin {
@@ -106,6 +115,9 @@ tasks.register("openApiGenerateViaggiatreno", GenerateTask::class) {
         "serializationLibrary" to "kotlinx_serialization",
         "enumPropertyNaming" to "UPPERCASE",
         "library" to "jvm-ktor",
+    )
+    typeMappings = mapOf(
+        "java.math.BigDecimal" to "kotlin.Double",
     )
 }
 

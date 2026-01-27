@@ -84,7 +84,7 @@ components:
         - to
         - departureTime
         - arrivalTime
-        - run
+        - status
       properties:
         from:
           $ref: '#/components/schemas/Station'
@@ -96,6 +96,12 @@ components:
           $ref: '#/components/schemas/Timing'
         run:
           $ref: '#/components/schemas/Run'
+        status:
+          type: string
+          enum:
+            - on-time
+            - delayed
+            - cancelled
     Run:
       description: A specific run of a train on a given date. Only one run per train per date exists.
       type: object

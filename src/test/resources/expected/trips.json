@@ -1,0 +1,22 @@
+[
+  {
+    "from": {
+      "id": "S01700",
+      "name": "MILANO CENTRALE"
+    },
+    "to": {
+      "id": "S00452",
+      "name": "TORINO LINGOTTO"
+    },
+    "departureTime": {
+      "scheduled": "2026-01-23T22:15",
+      "expected": "2026-01-23T22:15",
+      "actual": "2026-01-23T22:18"
+    },
+    "arrivalTime": {
+      "scheduled": "2026-01-23T23:15",
+      "expected": "2026-01-23T23:20"
+    },
+    "status": "ON_TIME"
+  }
+]

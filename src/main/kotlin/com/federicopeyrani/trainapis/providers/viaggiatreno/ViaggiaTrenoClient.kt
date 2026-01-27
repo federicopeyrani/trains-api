@@ -79,7 +79,7 @@ class ViaggiaTrenoClient(
     }
 
     override suspend fun getDepartures(from: String, date: LocalDateTime) = getDeparturesRaw(from, date)
-        .take(10)
+        .filter { it.provvedimento != 1 } // Filter out canceled trains
         .map { trip ->
             val train = getTrain(trip)
             expandTripDetails(from = from, trip = trip, train = train)
@@ -87,6 +87,7 @@ class ViaggiaTrenoClient(
 
     override fun getTrips(from: String, to: String, date: LocalDateTime): Flow<Trip> = flow {
         val departures = getDeparturesRaw(from, date)
+            .filter { it.provvedimento != 1 } // Filter out canceled trains
 
         departures
             .asFlow()
@@ -145,11 +146,7 @@ class ViaggiaTrenoClient(
 
         val destinationTiming = Timing(
             scheduled = runExpectedArrivalTime,
-            expected = train.compOrarioArrivoZeroEffettivo
-                ?.parseAsTimeAt(tripDate.date)
-                ?.toInstant(zone)
-                ?.toEpochMilliseconds()
-                ?.toOffsetDateTime(),
+            expected = train.compOrarioArrivoZeroEffettivo?.parseAsTimeAt(tripDate.date),
             actual = destinationStop.arrivoReale?.toOffsetDateTime(),
         )
 
@@ -157,7 +154,7 @@ class ViaggiaTrenoClient(
             from = fromStop.toStation(),
             to = destinationStop.toStation(),
             departureTime = Timing(
-                scheduled = tripDepartureTime.toInstant(zone).toEpochMilliseconds().toOffsetDateTime(),
+                scheduled = tripDepartureTime,
                 expected = fromStop.partenzaTeorica?.toOffsetDateTime(),
                 actual = fromStop.partenzaReale?.toOffsetDateTime(),
             ),
@@ -176,17 +173,23 @@ class ViaggiaTrenoClient(
                     destination = lastStop.toStation(),
                 ),
             ),
+            status = trip.getStatus(),
         )
+    }
+
+    private fun PartenzeArrivi.getStatus() = when (provvedimento) {
+        1 -> Trip.Status.CANCELLED
+        2 -> Trip.Status.DELAYED
+        else -> Trip.Status.ON_TIME
     }
 
     private fun Long.toOffsetDateTime() = Instant
         .fromEpochMilliseconds(this)
         .toLocalDateTime(zone)
 
-    private fun String.parseAsTimeAt(date: LocalDate): LocalDateTime {
-        val time = timeFormatter.parse(this)
-        return time.atDate(date)
-    }
+    private fun String.parseAsTimeAt(date: LocalDate) = timeFormatter
+        .parse(this)
+        .atDate(date)
 
     private fun Fermata.toStation() = Station(
         id = this.id,

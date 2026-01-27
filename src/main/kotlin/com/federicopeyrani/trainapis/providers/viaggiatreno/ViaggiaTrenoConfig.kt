@@ -2,6 +2,7 @@ package com.federicopeyrani.trainapis.providers.viaggiatreno
 
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.api.StationsApi
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.api.TrainsApi
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
@@ -30,19 +31,17 @@ class ViaggiaTrenoConfig {
      * @return TrainsApi instance for train-related endpoints
      */
     @Bean
-    fun trainsApi(): TrainsApi {
-        return TrainsApi {
+    fun trainsApi(engine: HttpClientEngine?) =
+        TrainsApi(httpClientEngine = engine) {
             it.install(ContentNegotiation) { json(json) }
             it.install(Logging) { level = LogLevel.ALL }
         }
-    }
 
     @Bean
-    fun stationsApi(): StationsApi {
-        return StationsApi {
+    fun stationsApi(engine: HttpClientEngine?) =
+        StationsApi(httpClientEngine = engine) {
             it.install(ContentNegotiation) { json(json) }
             it.install(Logging) { level = LogLevel.ALL }
         }
-    }
 }
 

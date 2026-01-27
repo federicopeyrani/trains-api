@@ -488,7 +488,8 @@ components:
           nullable: true
           description: Foreign departure time
         oraArrivoEstera:
-          type: string
+          type: number
+          format: int64
           nullable: true
           description: Foreign arrival time
         tratta:
@@ -760,7 +761,8 @@ components:
           nullable: true
           description: Foreign departure time
         oraArrivoEstera:
-          type: string
+          type: number
+          format: int64
           nullable: true
           description: Foreign arrival time
         orarioPartenza:

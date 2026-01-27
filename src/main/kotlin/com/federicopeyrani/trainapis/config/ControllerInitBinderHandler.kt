@@ -10,13 +10,11 @@ import org.springframework.web.bind.annotation.InitBinder
  * Handles form parameters and path variables.
  */
 @ControllerAdvice
-class ControllerInitBinderHandler(
-    private val localDateTimePropertyEditorSupport: LocalDateTimePropertyEditorSupport,
-) {
+class ControllerInitBinderHandler {
 
     @InitBinder
     fun initBinder(binder: WebDataBinder) = binder.run {
-        registerCustomEditor(LocalDateTime::class.java, localDateTimePropertyEditorSupport)
+        registerCustomEditor(LocalDateTime::class.java, LocalDateTimePropertyEditorSupport)
     }
 }
 
