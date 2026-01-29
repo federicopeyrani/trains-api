@@ -1,0 +1,16 @@
+.git
+.gitignore
+.gitattributes
+.gradle
+.idea
+.kotlin
+.run
+build
+*.iml
+.DS_Store
+README.md
+HELP.md
+SETUP_SUMMARY.md
+*.http
+http-client.env.json
+compose.yaml
