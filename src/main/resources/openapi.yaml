@@ -176,18 +176,25 @@ components:
         - destinationArrivalTime
         - train
         - status
+        - origin
+        - destination
+        - stops
         - lastUpdate
       properties:
         id:
           $ref: '#/components/schemas/RunId'
-        originDepartureTime:
-          $ref: '#/components/schemas/Timing'
-        destinationArrivalTime:
-          $ref: '#/components/schemas/Timing'
         train:
           $ref: '#/components/schemas/Train'
         status:
           $ref: '#/components/schemas/Status'
+        origin:
+          $ref: '#/components/schemas/OriginStop'
+        destination:
+          $ref: '#/components/schemas/DestinationStop'
+        stops:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntermediateStop'
         lastUpdate:
           $ref: '#/components/schemas/LastUpdated'
         lastUpdateFromProvider:
@@ -208,6 +215,44 @@ components:
         actual:
           type: string
           format: date-time
+    Stop:
+      oneOf:
+        - $ref: '#/components/schemas/OriginStop'
+        - $ref: '#/components/schemas/DestinationStop'
+        - $ref: '#/components/schemas/IntermediateStop'
+    OriginStop:
+      type: object
+      required:
+        - station
+        - departureTime
+      properties:
+        station:
+          $ref: '#/components/schemas/Station'
+        departureTime:
+          $ref: '#/components/schemas/Timing'
+    DestinationStop:
+      type: object
+      required:
+        - station
+        - arrivalTime
+      properties:
+        station:
+          $ref: '#/components/schemas/Station'
+        arrivalTime:
+          $ref: '#/components/schemas/Timing'
+    IntermediateStop:
+      type: object
+      required:
+        - station
+        - arrivalTime
+        - departureTime
+      properties:
+        station:
+          $ref: '#/components/schemas/Station'
+        arrivalTime:
+          $ref: '#/components/schemas/Timing'
+        departureTime:
+          $ref: '#/components/schemas/Timing'
     Status:
       type: string
       enum:

@@ -3,6 +3,7 @@ package com.federicopeyrani.trainapis.trains
 import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoClient
 import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoConfig
 import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoMockEngineConfiguration
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
 import org.junit.jupiter.api.Test
@@ -19,9 +20,9 @@ class TrainsServiceTests(
     @Test
     fun `should fetch departures`() = runTest {
         val date = LocalDateTime(2026, 1, 23, 22, 20, 30)
-        val departures = trainsService.getDepartures("S01700", date)
+        val trip = trainsService.getDepartures("S01700", date).first()
 
-        assertNotNull(departures.firstOrNull()).let {
+        trip.let {
             it.from.let {
                 assertEquals(it.id, "S01700")
                 assertEquals(it.name, "MILANO CENTRALE")
@@ -36,7 +37,7 @@ class TrainsServiceTests(
                 assertEquals(LocalDateTime(2026, 1, 23, 22, 18), it?.actual)
             }
             assertNotNull(it.run).let {
-                it.originDepartureTime.let {
+                it.origin.departureTime.let {
                     assertEquals(LocalDateTime(2026, 1, 23, 22, 15), it.scheduled)
                 }
             }

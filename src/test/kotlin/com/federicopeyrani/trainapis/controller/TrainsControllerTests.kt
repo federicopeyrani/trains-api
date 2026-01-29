@@ -6,6 +6,7 @@ import com.federicopeyrani.trainapis.model.Trip
 import com.federicopeyrani.trainapis.trains.TripsService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
 import org.springframework.beans.factory.annotation.Autowired
@@ -24,7 +25,7 @@ class TrainsControllerTests(
 
     @Test
     fun `should encode as JSON`() = runTest {
-        coEvery { tripsService.getDepartures("S01700", null) } returns listOf(
+        coEvery { tripsService.getDepartures("S01700", null) } returns flowOf(
             Trip(
                 from = Station(
                     id = "S01700",

@@ -1,5 +1,8 @@
 package com.federicopeyrani.trainapis.providers.viaggiatreno
 
+import com.federicopeyrani.trainapis.model.DestinationStop
+import com.federicopeyrani.trainapis.model.IntermediateStop
+import com.federicopeyrani.trainapis.model.OriginStop
 import com.federicopeyrani.trainapis.model.Run
 import com.federicopeyrani.trainapis.model.Station
 import com.federicopeyrani.trainapis.model.Status
@@ -32,6 +35,8 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.springframework.stereotype.Service
 import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -52,7 +57,7 @@ class ViaggiaTrenoClient(
 
         private val log = log()
 
-        // Format date as 'Tue Jan 20 2026 22:21:07 GMT+0100
+        // Format date as 'Tue Jan 20 2026 22:21:07 GMT+0100'
         private val dateFormatter = DateTimeComponents.Format {
             dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED)
             char(' ')
@@ -172,9 +177,7 @@ class ViaggiaTrenoClient(
         return Trip(
             from = fromStop?.toStation() ?: Station(id = from, name = "Unknown"),
             to = destinationStop?.toStation() ?: Station(
-                id = trip.codDestinazione ?: run {
-                    error("Destination code is null for trip ${trip.numeroTreno}")
-                },
+                id = trip.codDestinazione ?: error("Destination code is null for trip ${trip.numeroTreno}"),
                 name = trip.destinazione
             ),
             departureTime = Timing(
@@ -202,31 +205,42 @@ class ViaggiaTrenoClient(
         departureDateAtMidnight: Long,
         train: AndamentoTreno,
     ): Run {
-        val originStop = train.fermate?.first() ?: error("Train ${train.numeroTreno} has no stops")
+        val stops = train.fermate
+            ?.drop(1)
+            ?.dropLast(1)
+            ?.map { toIntermediateStop(train, it) }
+            ?: error("Train ${train.numeroTreno} has no stops")
+
+        val originStop = train.fermate.first()
         val lastStop = train.fermate.last()
 
         val tripDate = departureDateAtMidnight.asLocalDateTime().date
 
-        val runExpectedArrivalTime = train.orarioArrivo.asLocalDateTime()
-
         return Run(
             id = "${originStop.id}_${train.numeroTreno}_${departureDateAtMidnight}",
-            originDepartureTime = Timing(
-                scheduled = train.orarioPartenza.asLocalDateTime(),
-                expected = originStop.partenzaTeorica?.asLocalDateTime(),
-                actual = originStop.partenzaReale?.asLocalDateTime(),
-            ),
-            destinationArrivalTime = Timing(
-                scheduled = runExpectedArrivalTime,
-                expected = train.compOrarioArrivoZeroEffettivo?.parseAsTimeAt(tripDate),
-                actual = lastStop.arrivoReale?.asLocalDateTime(),
-            ),
             train = Train(
                 id = train.numeroTreno.toString(),
                 origin = originStop.toStation(),
                 destination = lastStop.toStation(),
             ),
             status = train.provvedimento?.asStatus() ?: Status.ON_TIME,
+            origin = OriginStop(
+                station = originStop.toStation(),
+                departureTime = Timing(
+                    scheduled = train.orarioPartenza.asLocalDateTime(),
+                    expected = originStop.partenzaTeorica?.asLocalDateTime(),
+                    actual = originStop.partenzaReale?.asLocalDateTime(),
+                ),
+            ),
+            destination = DestinationStop(
+                station = lastStop.toStation(),
+                arrivalTime = Timing(
+                    scheduled = train.orarioArrivo.asLocalDateTime(),
+                    expected = train.compOrarioArrivoZeroEffettivo?.parseAsTimeAt(tripDate),
+                    actual = lastStop.arrivoReale?.asLocalDateTime(),
+                ),
+            ),
+            stops = stops,
             lastUpdate = Clock.System.now().toLocalDateTime(zone),
             lastUpdateFromProvider = train.ultimoRilev?.asLocalDateTime(),
         )
@@ -250,5 +264,27 @@ class ViaggiaTrenoClient(
         id = this.id,
         name = this.stazione,
     )
+
+    private fun toIntermediateStop(train: AndamentoTreno, stop: Fermata): IntermediateStop {
+        // `Fermata.ritardo` will always be 0 if the train has not yet arrived at the stop,
+        // so the actual delay from `AndamentoTreno.ritardo` is more accurate
+        val delay = train.ritardo?.minutes ?: stop.ritardo?.minutes ?: Duration.ZERO
+
+        return IntermediateStop(
+            station = stop.toStation(),
+            arrivalTime = Timing(
+                scheduled = stop.arrivoTeorico?.asLocalDateTime()
+                    ?: error("`arrivoTeorico` is null for stop ${stop.id}"),
+                expected = Instant.fromEpochMilliseconds(stop.arrivoTeorico).plus(delay).toLocalDateTime(zone),
+                actual = stop.arrivoReale?.asLocalDateTime(),
+            ),
+            departureTime = Timing(
+                scheduled = stop.partenzaTeorica?.asLocalDateTime()
+                    ?: error("`partenzaTeorica` is null for stop ${stop.id}"),
+                expected = Instant.fromEpochMilliseconds(stop.partenzaTeorica).plus(delay).toLocalDateTime(zone),
+                actual = stop.partenzaReale?.asLocalDateTime(),
+            ),
+        )
+    }
 }
 
