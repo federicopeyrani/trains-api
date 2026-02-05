@@ -20,8 +20,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atDate
@@ -31,7 +31,6 @@ import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 
 /**
@@ -60,7 +59,7 @@ class ViaggiaTrenoTripsProvider(
         private val zone = TimeZone.of("Europe/Rome")
     }
 
-    override fun getDepartures(from: String, date: LocalDateTime) = flow {
+    override fun getDepartures(from: String, date: Instant) = flow {
         trainsApiWrapper.getDepartures(from, date)
             .asFlow()
             .flatMapMerge(concurrency = 10) { trip ->
@@ -73,7 +72,7 @@ class ViaggiaTrenoTripsProvider(
             .collect(this::emit)
     }
 
-    override fun getTrips(from: String, to: String, date: LocalDateTime): Flow<Trip> = flow {
+    override fun getTrips(from: String, to: String, date: Instant): Flow<Trip> = flow {
         trainsApiWrapper.getDepartures(from, date)
             .asFlow()
             .flatMapMerge(concurrency = 10) { trip ->

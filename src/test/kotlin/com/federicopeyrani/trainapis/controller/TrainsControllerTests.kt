@@ -25,7 +25,7 @@ class TrainsControllerTests(
 
     @Test
     fun `should encode as JSON`() = runTest {
-        coEvery { tripsService.getDepartures("S01700", null) } returns flowOf(
+        coEvery { tripsService.getDepartures("S01700", any()) } returns flowOf(
             Trip(
                 from = Station(
                     id = "S01700",

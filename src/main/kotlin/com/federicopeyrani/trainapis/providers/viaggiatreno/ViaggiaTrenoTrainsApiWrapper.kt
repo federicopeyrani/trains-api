@@ -6,15 +6,14 @@ import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.Partenz
 import com.federicopeyrani.trainapis.utils.log
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.UtcOffset
 import kotlinx.datetime.format
-import kotlinx.datetime.format.DateTimeComponents
 import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
-import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import org.springframework.stereotype.Component
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 @Component
 class ViaggiaTrenoTrainsApiWrapper(
@@ -27,7 +26,7 @@ class ViaggiaTrenoTrainsApiWrapper(
         private val log = log()
 
         // Format date as 'Tue Jan 20 2026 22:21:07 GMT+0100'
-        private val dateFormatter = DateTimeComponents.Format {
+        private val dateFormatter = LocalDateTime.Format {
             dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED)
             char(' ')
             monthName(MonthNames.ENGLISH_ABBREVIATED)
@@ -42,8 +41,7 @@ class ViaggiaTrenoTrainsApiWrapper(
             char(':')
             second()
             char(' ')
-            chars("GMT")
-            offset(UtcOffset.Formats.FOUR_DIGITS)
+            chars("GMT+0100")
         }
 
         private val zone = TimeZone.of("Europe/Rome")
@@ -51,14 +49,12 @@ class ViaggiaTrenoTrainsApiWrapper(
 
     suspend fun getDepartures(
         from: String,
-        date: LocalDateTime,
+        date: Instant,
     ) = cache.getOrPut(
-        key = Cache.Key.of("$from-${date.toInstant(zone)}"),
+        key = Cache.Key.of("departures-$from-${date}"),
         ttl = 10.minutes
     ) {
-        val formattedDate = date
-            .toInstant(zone)
-            .format(dateFormatter)
+        val formattedDate = date.toLocalDateTime(zone).format(dateFormatter)
 
         log.info("Fetching departures from ViaggiaTreno for station '$from' at date '$formattedDate'")
 

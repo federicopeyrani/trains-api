@@ -10,6 +10,8 @@ import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoTripsPro
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -34,7 +36,8 @@ class TrainsServiceTests(
 
     @Test
     fun `should fetch departures`() = runTest {
-        val date = LocalDateTime(2026, 1, 23, 22, 20, 30)
+        val zone = TimeZone.of("Europe/Rome")
+        val date = LocalDateTime(2026, 1, 23, 22, 20, 30).toInstant(zone)
         val trip = trainsService.getDepartures("S01700", date).first()
 
         trip.let {
