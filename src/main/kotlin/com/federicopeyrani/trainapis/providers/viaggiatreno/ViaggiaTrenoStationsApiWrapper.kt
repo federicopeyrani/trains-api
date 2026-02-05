@@ -17,6 +17,13 @@ class ViaggiaTrenoStationsApiWrapper(
         private val log = log()
     }
 
+    suspend fun searchStations(query: String) = cache.getOrPut(
+        key = Cache.Key.of("search-stations-$query"),
+        ttl = 60.minutes
+    ) {
+        stationsApi.cercaStazione(query).body()
+    }
+
     suspend fun getStationDetails(stationId: String) = cache.getOrPut(
         key = Cache.Key.of("station-details-$stationId"),
         ttl = 60.minutes

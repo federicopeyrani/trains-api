@@ -3,7 +3,6 @@ package com.federicopeyrani.trainapis.providers.viaggiatreno
 import com.federicopeyrani.trainapis.model.StationDetails
 import com.federicopeyrani.trainapis.model.StationDetailsAllOfLocation
 import com.federicopeyrani.trainapis.providers.StationsProvider
-import com.federicopeyrani.trainapis.providers.viaggiatreno.client.api.StationsApi
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.StazioneDettagliata
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.asFlow
@@ -14,13 +13,11 @@ import org.springframework.stereotype.Component
 @OptIn(ExperimentalCoroutinesApi::class)
 @Component
 class ViaggiaTrenoStationsProvider(
-    private val stationsApi: StationsApi,
     private val viaggiaTrenoStationsApiWrapper: ViaggiaTrenoStationsApiWrapper,
 ) : StationsProvider {
 
     override fun getStations(query: String) = flow {
-        stationsApi.cercaStazione(query)
-            .body()
+        viaggiaTrenoStationsApiWrapper.searchStations(query)
             .asFlow()
             .flatMapMerge(concurrency = 10) {
                 flow {
