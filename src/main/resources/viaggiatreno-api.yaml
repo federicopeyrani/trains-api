@@ -303,7 +303,6 @@ components:
             - 1: Main station
             - 3: Regular station
             - 4: Placeholder (should be ignored)
-          enum: [ 1, 3, 4 ]
           example: 3
         dettZoomStaz:
           type: array
@@ -391,7 +390,7 @@ components:
           type: boolean
           description: Whether station label is visible at this zoom level
         codiceRegione:
-          type: string
+          type: integer
           nullable: true
           description: Region code (usually null)
 
@@ -680,6 +679,7 @@ components:
         compRitardoAndamento:
           type: array
           description: Delay status description in multiple languages
+          nullable: true
           items:
             type: string
         compInStazionePartenza:
@@ -851,6 +851,7 @@ components:
         compRitardoAndamento:
           type: array
           description: Delay status description in multiple languages
+          nullable: true
           items:
             type: string
         compOrientamento:

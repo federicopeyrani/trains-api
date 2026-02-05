@@ -1,8 +1,12 @@
 package com.federicopeyrani.trainapis.trains
 
-import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoClient
+import com.federicopeyrani.trainapis.data.Cache
 import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoConfig
 import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoMockEngineConfiguration
+import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoStationsApiWrapper
+import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoStationsProvider
+import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoTrainsApiWrapper
+import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoTripsProvider
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
@@ -12,7 +16,18 @@ import org.springframework.boot.test.context.SpringBootTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-@SpringBootTest(classes = [TripsService::class, ViaggiaTrenoClient::class, ViaggiaTrenoConfig::class, ViaggiaTrenoMockEngineConfiguration::class])
+@SpringBootTest(
+    classes = [
+        TripsService::class,
+        ViaggiaTrenoTripsProvider::class,
+        ViaggiaTrenoTrainsApiWrapper::class,
+        ViaggiaTrenoStationsProvider::class,
+        ViaggiaTrenoStationsApiWrapper::class,
+        ViaggiaTrenoConfig::class,
+        Cache.Factory::class,
+        ViaggiaTrenoMockEngineConfiguration::class,
+    ]
+)
 class TrainsServiceTests(
     @Autowired private val trainsService: TripsService,
 ) {

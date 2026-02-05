@@ -5,7 +5,7 @@ import com.federicopeyrani.trainapis.model.Trip
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDateTime
 
-interface Provider {
+interface TripsProvider {
 
     fun getDepartures(from: String, date: LocalDateTime): Flow<Trip>
 

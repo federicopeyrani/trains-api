@@ -7,6 +7,26 @@ servers:
   - url: 'http://localhost:8081'
 paths:
 
+  /stations:
+    get:
+      summary: Get all stations
+      operationId: getStations
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A list of all stations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StationDetails'
+
   /departures/{from}:
     get:
       summary: Get departures from a station
@@ -145,6 +165,23 @@ components:
           type: string
     StationId:
       type: string
+    StationDetails:
+      allOf:
+        - $ref: '#/components/schemas/Station'
+        - type: object
+          properties:
+            location:
+              type: object
+              required:
+                - latitude
+                - longitude
+              properties:
+                latitude:
+                  type: number
+                  format: float
+                longitude:
+                  type: number
+                  format: float
     Trip:
       type: object
       required:
@@ -220,45 +257,55 @@ components:
         - $ref: '#/components/schemas/OriginStop'
         - $ref: '#/components/schemas/DestinationStop'
         - $ref: '#/components/schemas/IntermediateStop'
+    BaseStop:
+      type: object
+      required:
+        - station
+        - status
+      properties:
+        station:
+          $ref: '#/components/schemas/Station'
+        status:
+          $ref: '#/components/schemas/StopStatus'
     OriginStop:
-      type: object
-      required:
-        - station
-        - departureTime
-      properties:
-        station:
-          $ref: '#/components/schemas/Station'
-        departureTime:
-          $ref: '#/components/schemas/Timing'
+      allOf:
+        - $ref: "#/components/schemas/BaseStop"
+        - type: object
+          required:
+            - departureTime
+          properties:
+            departureTime:
+              $ref: '#/components/schemas/Timing'
     DestinationStop:
-      type: object
-      required:
-        - station
-        - arrivalTime
-      properties:
-        station:
-          $ref: '#/components/schemas/Station'
-        arrivalTime:
-          $ref: '#/components/schemas/Timing'
+      allOf:
+        - $ref: "#/components/schemas/BaseStop"
+        - type: object
+          required:
+            - arrivalTime
+          properties:
+            arrivalTime:
+              $ref: '#/components/schemas/Timing'
     IntermediateStop:
-      type: object
-      required:
-        - station
-        - arrivalTime
-        - departureTime
-      properties:
-        station:
-          $ref: '#/components/schemas/Station'
-        arrivalTime:
-          $ref: '#/components/schemas/Timing'
-        departureTime:
-          $ref: '#/components/schemas/Timing'
+      allOf:
+        - $ref: "#/components/schemas/BaseStop"
+        - type: object
+          properties:
+            arrivalTime:
+              $ref: '#/components/schemas/Timing'
+            departureTime:
+              $ref: '#/components/schemas/Timing'
+    StopStatus:
+      type: string
+      enum:
+        - NOT_YET_ARRIVED
+        - ARRIVED
+        - DEPARTED
     Status:
       type: string
       enum:
-        - on-time
-        - delayed
-        - cancelled
+        - ON_TIME
+        - DELAYED
+        - CANCELLED
     LastUpdated:
       type: string
       format: date-time
@@ -278,3 +325,4 @@ components:
           $ref: '#/components/schemas/Station'
     TrainId:
       type: string
+

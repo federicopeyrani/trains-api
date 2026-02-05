@@ -2,6 +2,7 @@ package com.federicopeyrani.trainapis.controller
 
 import com.federicopeyrani.trainapis.api.DefaultApi
 import com.federicopeyrani.trainapis.model.Run
+import com.federicopeyrani.trainapis.model.StationDetails
 import com.federicopeyrani.trainapis.model.Trip
 import com.federicopeyrani.trainapis.trains.TripsService
 import kotlinx.coroutines.flow.Flow
@@ -15,6 +16,11 @@ import kotlin.time.ExperimentalTime
 class TrainsController(
     private val tripsService: TripsService,
 ) : DefaultApi {
+
+    override fun getStations(query: String): ResponseEntity<Flow<StationDetails>> {
+        val stations = tripsService.getStations(query)
+        return ResponseEntity.ok(stations)
+    }
 
     override fun getDepartures(from: String, date: LocalDateTime?): ResponseEntity<Flow<Trip>> {
         val departures = tripsService.getDepartures(from, date)

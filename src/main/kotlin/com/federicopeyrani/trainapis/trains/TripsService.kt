@@ -1,7 +1,9 @@
 package com.federicopeyrani.trainapis.trains
 
+import com.federicopeyrani.trainapis.model.StationDetails
 import com.federicopeyrani.trainapis.model.Trip
-import com.federicopeyrani.trainapis.providers.Provider
+import com.federicopeyrani.trainapis.providers.StationsProvider
+import com.federicopeyrani.trainapis.providers.TripsProvider
 import com.federicopeyrani.trainapis.utils.log
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -17,12 +19,18 @@ import kotlin.time.ExperimentalTime
 @Service
 @OptIn(ExperimentalTime::class, ExperimentalCoroutinesApi::class)
 class TripsService(
-    private val provider: Provider,
+    private val provider: TripsProvider,
+    private val stationsProvider: StationsProvider,
 ) {
 
     companion object {
 
         private val log = log()
+    }
+
+    fun getStations(query: String): Flow<StationDetails> {
+        log.info("Getting stations for query '$query'")
+        return stationsProvider.getStations(query)
     }
 
     fun getDepartures(from: String, date: LocalDateTime?): Flow<Trip> {
