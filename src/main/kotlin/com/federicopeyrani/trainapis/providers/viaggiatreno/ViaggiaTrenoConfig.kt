@@ -44,14 +44,14 @@ class ViaggiaTrenoConfig {
     fun trainsApi(engine: HttpClientEngine?) =
         TrainsApi(httpClientEngine = engine) {
             it.install(ContentNegotiation) { json(json) }
-            it.install(Logging) { level = LogLevel.ALL }
+            it.install(Logging) { level = LogLevel.INFO }
         }
 
     @Bean
     fun stationsApi(engine: HttpClientEngine?) =
         StationsApi(httpClientEngine = engine) {
             it.install(ContentNegotiation) { json(json) }
-            it.install(Logging) { level = LogLevel.ALL }
+            it.install(Logging) { level = LogLevel.INFO }
         }
 
     @Bean

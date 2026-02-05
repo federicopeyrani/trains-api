@@ -44,6 +44,7 @@ import kotlin.time.Instant
 @Service
 class ViaggiaTrenoTripsProvider(
     private val trainsApiWrapper: ViaggiaTrenoTrainsApiWrapper,
+    private val stationApiWrapper: ViaggiaTrenoStationsApiWrapper,
 ) : TripsProvider {
 
     companion object {
@@ -123,10 +124,11 @@ class ViaggiaTrenoTripsProvider(
 
         return Trip(
             from = fromStop?.toStation() ?: Station(id = from, name = "Unknown"),
-            to = destinationStop?.toStation() ?: Station(
-                id = trip.codDestinazione ?: error("Destination code is null for trip ${trip.numeroTreno}"),
-                name = trip.destinazione
-            ),
+            to = destinationStop?.toStation()
+            // `codDestinazione` can actually be null for some trips
+            // `destinazione` seems to always be non-null though
+                ?: getStationByNameOrNull(trip.destinazione)
+                ?: error("Destination code is null for trip ${trip.numeroTreno}"),
             departureTime = Timing(
                 scheduled = tripDepartureTime,
                 expected = fromStop?.partenzaTeorica?.asLocalDateTime(),
@@ -244,6 +246,15 @@ class ViaggiaTrenoTripsProvider(
                     )
                 },
             status = stop.getStatus()
+        )
+    }
+
+    private suspend fun getStationByNameOrNull(name: String): Station? {
+        val result = stationApiWrapper.searchStations(name).firstOrNull() ?: return null
+
+        return Station(
+            id = result.id,
+            name = result.nomeBreve,
         )
     }
 
