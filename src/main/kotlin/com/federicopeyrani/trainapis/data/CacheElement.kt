@@ -1,12 +1,12 @@
-package com.federicopeyrani.trainapis.providers.viaggiatreno
+package com.federicopeyrani.trainapis.data
 
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Instant
 
 data class CacheElement<T>(
-    val timestamp: Instant,
     val data: T,
+    val timestamp: Instant,
     val ttl: Duration,
 ) {
 

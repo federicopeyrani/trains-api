@@ -18,10 +18,14 @@ class ViaggiaTrenoStationsProvider(
 
     override fun getStations(query: String) = flow {
         viaggiaTrenoStationsApiWrapper.searchStations(query)
+            .data
             .asFlow()
             .flatMapMerge(concurrency = 10) {
                 flow {
-                    val details = viaggiaTrenoStationsApiWrapper.getStationDetails(it.id)?.toDetails()
+                    val details = viaggiaTrenoStationsApiWrapper
+                        .getStationDetails(it.id)
+                        .data
+                        ?.toDetails()
                         ?: StationDetails(id = it.id, name = it.nomeBreve)
                     emit(details)
                 }

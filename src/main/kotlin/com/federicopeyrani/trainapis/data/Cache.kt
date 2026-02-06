@@ -1,6 +1,5 @@
 package com.federicopeyrani.trainapis.data
 
-import com.federicopeyrani.trainapis.providers.viaggiatreno.CacheElement
 import org.springframework.cache.CacheManager
 import org.springframework.stereotype.Component
 import kotlin.time.Clock
@@ -33,20 +32,18 @@ class Cache(
         fun asString(): String
     }
 
-    val cache by lazy { cacheManager.getCache(name) ?: error("No cache found with name: $name") }
+    private val cache by lazy { cacheManager.getCache(name) ?: error("No cache found with name: $name") }
 
-    inline operator fun <reified T> get(key: Key<T>): T? {
-        return cache.get(key.asString(), CacheElement::class.java)
-            ?.takeIf { Clock.System.now() - it.timestamp < it.ttl }
-            ?.data as? T
-    }
+    @Suppress("UNCHECKED_CAST")
+    operator fun <T> get(key: Key<T>) = cache
+        .get(key.asString(), CacheElement::class.java)
+        ?.takeIf { Clock.System.now() - it.timestamp < it.ttl }
+            as? CacheElement<T>
 
-    fun <T> put(key: Key<T>, value: T, ttl: Duration = Duration.INFINITE) {
-        val element = CacheElement.of(value, ttl)
-        cache.put(key.asString(), element)
-    }
+    fun <T> put(key: Key<T>, value: T, ttl: Duration = Duration.INFINITE) = CacheElement
+        .of(value, ttl)
+        .also { cache.put(key.asString(), it) }
 
-    inline fun <reified T> getOrPut(key: Key<T>, ttl: Duration = Duration.INFINITE, block: () -> T): T {
-        return get(key) ?: block().also { put(key, it, ttl) }
-    }
+    inline fun <reified T> getOrPut(key: Key<T>, ttl: Duration = Duration.INFINITE, block: () -> T) =
+        get(key) ?: put(key, block(), ttl)
 }

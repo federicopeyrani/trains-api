@@ -28,7 +28,7 @@ class ViaggiaTrenoStationsApiWrapper(
         key = Cache.Key.of("station-details-$stationId"),
         ttl = 60.minutes
     ) {
-        val regionCode = getRegionCode(stationId) ?: return@getOrPut null
+        val regionCode = getRegionCode(stationId).data ?: return@getOrPut null
 
         stationsApi.elencoStazioni(regionCode)
             .body()
