@@ -325,7 +325,6 @@ components:
       required:
         - codiceStazione
         - codStazione
-        - localita
       properties:
         codReg:
           type: integer

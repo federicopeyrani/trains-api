@@ -191,13 +191,13 @@ components:
         - lastUpdate
       properties:
         from:
-          $ref: '#/components/schemas/Station'
+          oneOf:
+            - $ref: '#/components/schemas/IntermediateStop'
+            - $ref: '#/components/schemas/OriginStop'
         to:
-          $ref: '#/components/schemas/Station'
-        departureTime:
-          $ref: '#/components/schemas/Timing'
-        arrivalTime:
-          $ref: '#/components/schemas/Timing'
+          oneOf:
+            - $ref: '#/components/schemas/IntermediateStop'
+            - $ref: '#/components/schemas/DestinationStop'
         lastUpdate:
           $ref: '#/components/schemas/LastUpdated'
         lastUpdateFromProvider:
@@ -271,8 +271,6 @@ components:
       allOf:
         - $ref: "#/components/schemas/BaseStop"
         - type: object
-          required:
-            - departureTime
           properties:
             departureTime:
               $ref: '#/components/schemas/Timing'
@@ -280,8 +278,6 @@ components:
       allOf:
         - $ref: "#/components/schemas/BaseStop"
         - type: object
-          required:
-            - arrivalTime
           properties:
             arrivalTime:
               $ref: '#/components/schemas/Timing'

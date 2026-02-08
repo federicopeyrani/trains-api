@@ -52,7 +52,7 @@ class ViaggiaTrenoTrainsApiWrapper(
         date: Instant,
     ) = cache.getOrPut(
         key = Cache.Key.of("departures-$from-${date}"),
-        ttl = 10.minutes
+        ttl = { 10.minutes }
     ) {
         val formattedDate = date.toLocalDateTime(zone).format(dateFormatter)
 
@@ -77,7 +77,7 @@ class ViaggiaTrenoTrainsApiWrapper(
         date: Long,
     ) = cache.getOrPut(
         key = Cache.Key.of("train-${from}-${trainId}-${date}"),
-        ttl = 10.minutes
+        ttl = { 10.minutes }
     ) {
         log.info("Fetching train status from ViaggiaTreno API for trainId=${trainId} on date=$date at stationId=$from")
 

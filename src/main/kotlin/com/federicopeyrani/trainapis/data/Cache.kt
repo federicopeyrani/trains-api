@@ -44,6 +44,10 @@ class Cache(
         .of(value, ttl)
         .also { cache.put(key.asString(), it) }
 
-    inline fun <reified T> getOrPut(key: Key<T>, ttl: Duration = Duration.INFINITE, block: () -> T) =
-        get(key) ?: put(key, block(), ttl)
+    inline fun <reified T> getOrPut(
+        key: Key<T>,
+        ttl: (T) -> Duration = { Duration.INFINITE },
+        block: () -> T,
+    ) =
+        get(key) ?: block().let { put(key, it, ttl(it)) }
 }

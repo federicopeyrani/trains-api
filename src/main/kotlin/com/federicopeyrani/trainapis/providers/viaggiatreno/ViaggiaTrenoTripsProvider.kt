@@ -11,6 +11,8 @@ import com.federicopeyrani.trainapis.model.StopStatus
 import com.federicopeyrani.trainapis.model.Timing
 import com.federicopeyrani.trainapis.model.Train
 import com.federicopeyrani.trainapis.model.Trip
+import com.federicopeyrani.trainapis.model.TripFrom
+import com.federicopeyrani.trainapis.model.TripTo
 import com.federicopeyrani.trainapis.providers.TripsProvider
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.AndamentoTreno
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.Fermata
@@ -144,30 +146,36 @@ class ViaggiaTrenoTripsProvider(
         val tripDate = trip.dataPartenzaTreno.asProviderDateTime().date
 
         return Trip(
-            from = fromStop?.toStation()
-                ?: getStationByIdOrNull(from)
-                ?: error("Can't find station details for origin station '$from'"),
-            to = destinationStop?.toStation()
-            // `codDestinazione` can actually be null for some trips
-            // `destinazione` seems to always be non-null though
-                ?: getStationByNameOrNull(trip.destinazione)
-                ?: error("Destination code is null for trip ${trip.numeroTreno}"),
-            departureTime = Timing(
-                scheduled = trip.compOrarioPartenza
-                    .parseAsTimeAt(tripDate)
-                    .convertTimeZone(providerTimeZone, TimeZone.UTC),
-                expected = fromStop?.partenzaTeorica?.asUTCDateTime(),
-                actual = fromStop?.partenzaReale?.asUTCDateTime(),
+            from = TripFrom(
+                station = fromStop?.toStation()
+                    ?: getStationByIdOrNull(from)
+                    ?: error("Can't find station details for origin station '$from'"),
+                status = fromStop?.getStatus() ?: StopStatus.NOT_YET_ARRIVED,
+                departureTime = Timing(
+                    scheduled = trip.compOrarioPartenza
+                        .parseAsTimeAt(tripDate)
+                        .convertTimeZone(providerTimeZone, TimeZone.UTC),
+                    expected = fromStop?.partenzaTeorica?.asUTCDateTime(),
+                    actual = fromStop?.partenzaReale?.asUTCDateTime(),
+                ),
             ),
-            arrivalTime = runExpectedArrivalTime?.let {
-                Timing(
-                    scheduled = it,
-                    expected = train?.data?.compOrarioArrivoZeroEffettivo
-                        ?.parseAsTimeAt(tripDate)
-                        ?.convertTimeZone(providerTimeZone, TimeZone.UTC),
-                    actual = destinationStop?.arrivoReale?.asUTCDateTime(),
-                )
-            },
+            to = TripTo(
+                station = destinationStop?.toStation()
+                // `codDestinazione` can actually be null for some trips
+                // `destinazione` seems to always be non-null though
+                    ?: getStationByNameOrNull(trip.destinazione)
+                    ?: error("Destination code is null for trip ${trip.numeroTreno}"),
+                status = destinationStop?.getStatus() ?: StopStatus.NOT_YET_ARRIVED,
+                arrivalTime = runExpectedArrivalTime?.let {
+                    Timing(
+                        scheduled = it,
+                        expected = train?.data?.compOrarioArrivoZeroEffettivo
+                            ?.parseAsTimeAt(tripDate)
+                            ?.convertTimeZone(providerTimeZone, TimeZone.UTC),
+                        actual = destinationStop?.arrivoReale?.asUTCDateTime(),
+                    )
+                },
+            ),
             lastUpdate = tripLastUpdate.toLocalDateTime(TimeZone.UTC),
             lastUpdateFromProvider = trip.ultimoRilev?.asUTCDateTime(),
             run = train?.let {
