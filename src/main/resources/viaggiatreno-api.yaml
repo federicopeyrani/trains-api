@@ -705,17 +705,18 @@ components:
         compImgRitardo:
           type: string
           description: URL for delay icon
-#        compRitardo:
-#          type: array
-#          description: Delay description in multiple languages
-#          items:
-#            type: string
-        compRitardoAndamento:
-          type: array
-          description: Delay status description in multiple languages
-          nullable: true
-          items:
-            type: string
+        #        compRitardo:
+        #          type: array
+        #          description: Delay description in multiple languages
+        #          items:
+        #            type: string
+        #        compRitardoAndamento:
+        #          type: array
+        #          description: Delay status description in multiple languages
+        #          nullable: true
+        #          items:
+        #            type: string
+        #            nullable: true
         compInStazionePartenza:
           type: array
           description: In-station departure status in multiple languages
@@ -877,17 +878,18 @@ components:
           type: integer
           description: Current delay in minutes (integer)
           example: 0
-#        compRitardo:
-#          type: array
-#          description: Delay description in multiple languages
-#          items:
-#            type: string
-        compRitardoAndamento:
-          type: array
-          description: Delay status description in multiple languages
-          nullable: true
-          items:
-            type: string
+        #        compRitardo:
+        #          type: array
+        #          description: Delay description in multiple languages
+        #          items:
+        #            type: string
+        #        compRitardoAndamento:
+        #          type: array
+        #          description: Delay status description in multiple languages
+        #          nullable: true
+        #          items:
+        #            type: string
+        #            nullable: true
         compOrientamento:
           type: array
           description: Train composition orientation in multiple languages
@@ -913,9 +915,9 @@ components:
           items:
             $ref: '#/components/schemas/Fermata'
         compOrarioArrivoZeroEffettivo:
-            type: string
-            nullable: true
-            description: Effective arrival time at destination (HH:MM format)
+          type: string
+          nullable: true
+          description: Effective arrival time at destination (HH:MM format)
         ultimoRilev:
           type: integer
           format: int64

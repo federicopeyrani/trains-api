@@ -261,7 +261,6 @@ components:
       type: object
       required:
         - station
-        - status
       properties:
         station:
           $ref: '#/components/schemas/Station'
@@ -296,6 +295,7 @@ components:
         - NOT_YET_ARRIVED
         - ARRIVED
         - DEPARTED
+        - NOT_YET_DEPARTED
     Status:
       type: string
       enum:
