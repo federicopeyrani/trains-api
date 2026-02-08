@@ -140,11 +140,13 @@ class ViaggiaTrenoTripsProvider(
         val runExpectedArrivalTime = train?.data?.orarioArrivo?.asUTCDateTime()
             ?: trip.orarioArrivo?.asUTCDateTime()
 
-        val fromStop = train?.data?.fermate?.withIndex()?.firstOrNull { (_, stop) -> stop.id == from }
-        val lastStop = train?.data?.fermate?.withIndex()?.lastOrNull()
+        val stops = train?.data?.fermate?.withIndex()
+
+        val fromStop = stops?.firstOrNull { (_, stop) -> stop.id == from }
+
         val destinationStop =
-            if (to != null) train?.data?.fermate?.withIndex()?.firstOrNull { (_, stop) -> stop.id == to }
-            else lastStop
+            if (to != null) stops?.firstOrNull { (_, stop) -> stop.id == to }
+            else stops?.lastOrNull()
 
         val tripDate = trip.dataPartenzaTreno.asProviderDateTime().date
 

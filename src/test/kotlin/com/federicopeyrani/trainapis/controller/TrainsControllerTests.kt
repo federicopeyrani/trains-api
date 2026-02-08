@@ -3,6 +3,8 @@ package com.federicopeyrani.trainapis.controller
 import com.federicopeyrani.trainapis.model.Station
 import com.federicopeyrani.trainapis.model.Timing
 import com.federicopeyrani.trainapis.model.Trip
+import com.federicopeyrani.trainapis.model.TripFrom
+import com.federicopeyrani.trainapis.model.TripTo
 import com.federicopeyrani.trainapis.trains.TripsService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -27,23 +29,27 @@ class TrainsControllerTests(
     fun `should encode as JSON`() = runTest {
         coEvery { tripsService.getDepartures("S01700", any()) } returns flowOf(
             Trip(
-                from = Station(
-                    id = "S01700",
-                    name = "MILANO CENTRALE",
+                from = TripFrom(
+                    station = Station(
+                        id = "S01700",
+                        name = "MILANO CENTRALE",
+                    ),
+                    departureTime = Timing(
+                        scheduled = LocalDateTime(2026, 1, 23, 22, 15),
+                        expected = LocalDateTime(2026, 1, 23, 22, 15),
+                        actual = LocalDateTime(2026, 1, 23, 22, 18),
+                    ),
                 ),
-                to = Station(
-                    id = "S00452",
-                    name = "TORINO LINGOTTO",
-                ),
-                departureTime = Timing(
-                    scheduled = LocalDateTime(2026, 1, 23, 22, 15),
-                    expected = LocalDateTime(2026, 1, 23, 22, 15),
-                    actual = LocalDateTime(2026, 1, 23, 22, 18),
-                ),
-                arrivalTime = Timing(
-                    scheduled = LocalDateTime(2026, 1, 23, 23, 15),
-                    expected = LocalDateTime(2026, 1, 23, 23, 20),
-                    actual = null,
+                to = TripTo(
+                    station = Station(
+                        id = "S00452",
+                        name = "TORINO LINGOTTO",
+                    ),
+                    arrivalTime = Timing(
+                        scheduled = LocalDateTime(2026, 1, 23, 23, 15),
+                        expected = LocalDateTime(2026, 1, 23, 23, 20),
+                        actual = null,
+                    ),
                 ),
                 lastUpdate = LocalDateTime(2026, 1, 23, 23, 15),
                 run = null,

@@ -42,21 +42,25 @@ class TrainsServiceTests(
 
         trip.let {
             it.from.let {
-                assertEquals(it.id, "S01700")
-                assertEquals(it.name, "Milano Centrale")
+                it.station.let {
+                    assertEquals(it.id, "S01700")
+                    assertEquals(it.name, "Milano Centrale")
+                }
+                it.departureTime.let {
+                    assertEquals(LocalDateTime(2026, 1, 23, 21, 15), it?.scheduled)
+                    assertEquals(LocalDateTime(2026, 1, 23, 21, 15), it?.expected)
+                    assertEquals(LocalDateTime(2026, 1, 23, 21, 18), it?.actual)
+                }
             }
             it.to.let {
-                assertEquals(it.id, "S00452")
-                assertEquals(it.name, "Torino Lingotto")
-            }
-            it.departureTime.let {
-                assertEquals(LocalDateTime(2026, 1, 23, 21, 15), it?.scheduled)
-                assertEquals(LocalDateTime(2026, 1, 23, 21, 15), it?.expected)
-                assertEquals(LocalDateTime(2026, 1, 23, 21, 18), it?.actual)
+                it.station.let {
+                    assertEquals(it.id, "S00452")
+                    assertEquals(it.name, "Torino Lingotto")
+                }
             }
             assertNotNull(it.run).let {
                 it.origin.departureTime.let {
-                    assertEquals(LocalDateTime(2026, 1, 23, 21, 15), it.scheduled)
+                    assertEquals(LocalDateTime(2026, 1, 23, 21, 15), it?.scheduled)
                 }
             }
         }

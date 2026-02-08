@@ -1,21 +1,25 @@
 [
   {
     "from": {
-      "id": "S01700",
-      "name": "MILANO CENTRALE"
+      "station": {
+        "id": "S01700",
+        "name": "MILANO CENTRALE"
+      },
+      "departureTime": {
+        "scheduled": "2026-01-23T22:15",
+        "expected": "2026-01-23T22:15",
+        "actual": "2026-01-23T22:18"
+      }
     },
     "to": {
-      "id": "S00452",
-      "name": "TORINO LINGOTTO"
-    },
-    "departureTime": {
-      "scheduled": "2026-01-23T22:15",
-      "expected": "2026-01-23T22:15",
-      "actual": "2026-01-23T22:18"
-    },
-    "arrivalTime": {
-      "scheduled": "2026-01-23T23:15",
-      "expected": "2026-01-23T23:20"
+      "station": {
+        "id": "S00452",
+        "name": "TORINO LINGOTTO"
+      },
+      "arrivalTime": {
+        "scheduled": "2026-01-23T23:15",
+        "expected": "2026-01-23T23:20"
+      }
     },
     "lastUpdate": "2026-01-23T23:15"
   }
