@@ -137,6 +137,41 @@ paths:
                 items:
                   $ref: '#/components/schemas/StazioneDettagliata'
 
+  /dettaglioStazione/{idStazione}/{codiceRegione}:
+    get:
+      summary: Get detailed station information
+      description: |
+        Returns detailed information about a station including coordinates and map metadata.
+        Note: codiceRegione is required but ignored in practice, any value returns the same result.
+      operationId: dettaglioStazione
+      tags:
+        - Stations
+      parameters:
+        - name: idStazione
+          in: path
+          required: true
+          description: Station ID in unaltered format
+          schema:
+            type: string
+            example: "S01700"
+        - name: codiceRegione
+          in: path
+          required: true
+          description: Region code
+          schema:
+            type: integer
+            format: int32
+            example: 1
+      responses:
+        '200':
+          description: Detailed station information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StazioneDettagliata'
+        '204':
+          description: Station details not available
+
   /partenze/{idStazione}/{orarioAttuale}:
     get:
       summary: Get departures from a station

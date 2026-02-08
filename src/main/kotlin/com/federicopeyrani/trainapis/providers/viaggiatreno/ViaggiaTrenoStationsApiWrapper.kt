@@ -30,18 +30,22 @@ class ViaggiaTrenoStationsApiWrapper(
     ) {
         val regionCode = getRegionCode(stationId).data ?: return@getOrPut null
 
-        stationsApi.elencoStazioni(regionCode)
-            .body()
-            // Not all stations are returned by `elencoStazioni`, even though `getRegione` returns
-            // a valid region code. So we need to handle the case where the station is not found.
-            .firstOrNull { it.localita.id == stationId }
+        stationsApi.dettaglioStazione(stationId, regionCode).body()
     }
 
     private suspend fun getRegionCode(stationId: String) = cache.getOrPut(
         key = Cache.Key.of("station-region-$stationId"),
         ttl = 60.minutes
     ) {
-        runCatching { stationsApi.getRegione(stationId).body() }
+        runCatching { stationsApi.getRegione(stationId) }
+            .mapCatching {
+                when (it.status) {
+                    // Some stations are associated with the region code `0`, in which case the API returns a 204
+                    // "No Content"
+                    204 -> 0
+                    else -> it.body()
+                }
+            }
             .onFailure { log.warn("Failed to get region for station $stationId", it) }
             .getOrNull()
     }

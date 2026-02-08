@@ -50,13 +50,13 @@ class TrainsServiceTests(
                 assertEquals(it.name, "TORINO LINGOTTO")
             }
             it.departureTime.let {
-                assertEquals(LocalDateTime(2026, 1, 23, 22, 15), it?.scheduled)
-                assertEquals(LocalDateTime(2026, 1, 23, 22, 15), it?.expected)
-                assertEquals(LocalDateTime(2026, 1, 23, 22, 18), it?.actual)
+                assertEquals(LocalDateTime(2026, 1, 23, 21, 15), it?.scheduled)
+                assertEquals(LocalDateTime(2026, 1, 23, 21, 15), it?.expected)
+                assertEquals(LocalDateTime(2026, 1, 23, 21, 18), it?.actual)
             }
             assertNotNull(it.run).let {
                 it.origin.departureTime.let {
-                    assertEquals(LocalDateTime(2026, 1, 23, 22, 15), it.scheduled)
+                    assertEquals(LocalDateTime(2026, 1, 23, 21, 15), it.scheduled)
                 }
             }
         }

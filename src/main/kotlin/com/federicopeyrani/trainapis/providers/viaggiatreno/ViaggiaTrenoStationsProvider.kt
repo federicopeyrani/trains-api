@@ -1,9 +1,6 @@
 package com.federicopeyrani.trainapis.providers.viaggiatreno
 
-import com.federicopeyrani.trainapis.model.StationDetails
-import com.federicopeyrani.trainapis.model.StationDetailsAllOfLocation
 import com.federicopeyrani.trainapis.providers.StationsProvider
-import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.StazioneDettagliata
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapMerge
@@ -22,24 +19,13 @@ class ViaggiaTrenoStationsProvider(
             .asFlow()
             .flatMapMerge(concurrency = 10) {
                 flow {
-                    val details = viaggiaTrenoStationsApiWrapper
+                    viaggiaTrenoStationsApiWrapper
                         .getStationDetails(it.id)
                         .data
-                        ?.toDetails()
-                        ?: StationDetails(id = it.id, name = it.nomeBreve)
-                    emit(details)
+                        ?.toStation()
+                        ?.let { emit(it) }
                 }
             }
             .collect { emit(it) }
     }
-
-    private fun StazioneDettagliata.toDetails() = StationDetails(
-        id = localita.id,
-        name = localita.nomeBreve,
-        location = if (lat != null && lon != null)
-            StationDetailsAllOfLocation(
-                latitude = lat.toFloat(),
-                longitude = lon.toFloat(),
-            ) else null
-    )
 }

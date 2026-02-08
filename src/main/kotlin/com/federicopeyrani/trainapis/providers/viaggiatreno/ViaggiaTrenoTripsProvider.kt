@@ -15,6 +15,7 @@ import com.federicopeyrani.trainapis.providers.TripsProvider
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.AndamentoTreno
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.Fermata
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.PartenzeArrivi
+import com.federicopeyrani.trainapis.utils.convertTimeZone
 import com.federicopeyrani.trainapis.utils.log
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -55,6 +56,8 @@ class ViaggiaTrenoTripsProvider(
             chars(":")
             minute()
         }
+
+        private val providerTimeZone = TimeZone.of("Europe/Rome")
     }
 
     override fun getDepartures(from: String, date: Instant) = flow {
@@ -129,38 +132,42 @@ class ViaggiaTrenoTripsProvider(
         tripLastUpdate: Instant,
         train: CacheElement<AndamentoTreno>? = null,
     ): Trip {
-        val runExpectedArrivalTime = train?.data?.orarioArrivo?.asLocalDateTime()
-            ?: trip.orarioArrivo?.asLocalDateTime()
+        val runExpectedArrivalTime = train?.data?.orarioArrivo?.asUTCDateTime()
+            ?: trip.orarioArrivo?.asUTCDateTime()
 
         val fromStop = train?.data?.fermate?.firstOrNull { it.id == from }
         val lastStop = train?.data?.fermate?.lastOrNull()
         val destinationStop = if (to != null) train?.data?.fermate?.firstOrNull { it.id == to } else lastStop
 
-        val tripDate = trip.dataPartenzaTreno.asLocalDateTime().date
-
-        val tripDepartureTime = trip.compOrarioPartenza.parseAsTimeAt(tripDate)
+        val tripDate = trip.dataPartenzaTreno.asProviderDateTime().date
 
         return Trip(
-            from = fromStop?.toStation() ?: Station(id = from, name = "Unknown"),
+            from = fromStop?.toStation()
+                ?: getStationByIdOrNull(from)
+                ?: error("Can't find station details for origin station '$from'"),
             to = destinationStop?.toStation()
             // `codDestinazione` can actually be null for some trips
             // `destinazione` seems to always be non-null though
                 ?: getStationByNameOrNull(trip.destinazione)
                 ?: error("Destination code is null for trip ${trip.numeroTreno}"),
             departureTime = Timing(
-                scheduled = tripDepartureTime,
-                expected = fromStop?.partenzaTeorica?.asLocalDateTime(),
-                actual = fromStop?.partenzaReale?.asLocalDateTime(),
+                scheduled = trip.compOrarioPartenza
+                    .parseAsTimeAt(tripDate)
+                    .convertTimeZone(providerTimeZone, TimeZone.UTC),
+                expected = fromStop?.partenzaTeorica?.asUTCDateTime(),
+                actual = fromStop?.partenzaReale?.asUTCDateTime(),
             ),
             arrivalTime = runExpectedArrivalTime?.let {
                 Timing(
                     scheduled = it,
-                    expected = train?.data?.compOrarioArrivoZeroEffettivo?.parseAsTimeAt(tripDate),
-                    actual = destinationStop?.arrivoReale?.asLocalDateTime(),
+                    expected = train?.data?.compOrarioArrivoZeroEffettivo
+                        ?.parseAsTimeAt(tripDate)
+                        ?.convertTimeZone(providerTimeZone, TimeZone.UTC),
+                    actual = destinationStop?.arrivoReale?.asUTCDateTime(),
                 )
             },
             lastUpdate = tripLastUpdate.toLocalDateTime(TimeZone.UTC),
-            lastUpdateFromProvider = trip.ultimoRilev?.asLocalDateTime(),
+            lastUpdateFromProvider = trip.ultimoRilev?.asUTCDateTime(),
             run = train?.let {
                 getRunDetails(
                     departureDateAtMidnight = trip.dataPartenzaTreno,
@@ -179,13 +186,13 @@ class ViaggiaTrenoTripsProvider(
         val stops = train.fermate
             ?.drop(1)
             ?.dropLast(1)
-            ?.map { toIntermediateStop(train, it) }
+            ?.map { it.toIntermediateStop(train) }
             ?: error("Train ${train.numeroTreno} has no stops")
 
         val originStop = train.fermate.first()
         val lastStop = train.fermate.last()
 
-        val tripDate = departureDateAtMidnight.asLocalDateTime().date
+        val tripDate = departureDateAtMidnight.asProviderDateTime().date
 
         return Run(
             id = "${originStop.id}_${train.numeroTreno}_${departureDateAtMidnight}",
@@ -198,24 +205,26 @@ class ViaggiaTrenoTripsProvider(
             origin = OriginStop(
                 station = originStop.toStation(),
                 departureTime = Timing(
-                    scheduled = train.orarioPartenza.asLocalDateTime(),
-                    expected = originStop.partenzaTeorica?.asLocalDateTime(),
-                    actual = originStop.partenzaReale?.asLocalDateTime(),
+                    scheduled = train.orarioPartenza.asUTCDateTime(),
+                    expected = originStop.partenzaTeorica?.asUTCDateTime(),
+                    actual = originStop.partenzaReale?.asUTCDateTime(),
                 ),
                 status = originStop.getStatus()
             ),
             destination = DestinationStop(
                 station = lastStop.toStation(),
                 arrivalTime = Timing(
-                    scheduled = train.orarioArrivo.asLocalDateTime(),
-                    expected = train.compOrarioArrivoZeroEffettivo?.parseAsTimeAt(tripDate),
-                    actual = lastStop.arrivoReale?.asLocalDateTime(),
+                    scheduled = train.orarioArrivo.asUTCDateTime(),
+                    expected = train.compOrarioArrivoZeroEffettivo
+                        ?.parseAsTimeAt(tripDate)
+                        ?.convertTimeZone(providerTimeZone, TimeZone.UTC),
+                    actual = lastStop.arrivoReale?.asUTCDateTime(),
                 ),
                 status = lastStop.getStatus()
             ),
             stops = stops,
             lastUpdate = trainLastUpdate.toLocalDateTime(TimeZone.UTC),
-            lastUpdateFromProvider = train.ultimoRilev?.asLocalDateTime(),
+            lastUpdateFromProvider = train.ultimoRilev?.asUTCDateTime(),
         )
     }
 
@@ -225,52 +234,53 @@ class ViaggiaTrenoTripsProvider(
         else -> Status.ON_TIME
     }
 
-    private fun Long.asLocalDateTime() = Instant
+    private fun Long.asUTCDateTime() = Instant
         .fromEpochMilliseconds(this)
         .toLocalDateTime(TimeZone.UTC)
+
+    private fun Long.asProviderDateTime() = Instant
+        .fromEpochMilliseconds(this)
+        .toLocalDateTime(providerTimeZone)
 
     private fun String.parseAsTimeAt(date: LocalDate) = timeFormatter
         .parse(this)
         .atDate(date)
 
-    private fun Fermata.toStation() = Station(
-        id = this.id,
-        name = this.stazione,
-    )
-
-    private fun toIntermediateStop(train: AndamentoTreno, stop: Fermata): IntermediateStop {
+    private suspend fun Fermata.toIntermediateStop(train: AndamentoTreno): IntermediateStop {
         // `Fermata.ritardo` will always be 0 if the train has not yet arrived at the stop,
         // so the actual delay from `AndamentoTreno.ritardo` is more accurate
-        val delay = train.ritardo?.minutes ?: stop.ritardo?.minutes ?: Duration.ZERO
+        val delay = train.ritardo?.minutes ?: ritardo?.minutes ?: Duration.ZERO
 
         return IntermediateStop(
-            station = stop.toStation(),
-            arrivalTime = stop.arrivoTeorico
-                ?.asLocalDateTime()
+            station = toStation(),
+            arrivalTime = arrivoTeorico
+                ?.asUTCDateTime()
                 ?.let {
                     Timing(
                         scheduled = it,
-                        expected = Instant
-                            .fromEpochMilliseconds(stop.arrivoTeorico)
+                        expected = Instant.fromEpochMilliseconds(arrivoTeorico)
                             .plus(delay)
                             .toLocalDateTime(TimeZone.UTC),
-                        actual = stop.arrivoReale?.asLocalDateTime(),
+                        actual = arrivoReale?.asUTCDateTime(),
                     )
                 },
-            departureTime = stop.partenzaTeorica
-                ?.asLocalDateTime()
+            departureTime = partenzaTeorica
+                ?.asUTCDateTime()
                 ?.let {
                     Timing(
                         scheduled = it,
-                        expected = Instant.fromEpochMilliseconds(stop.partenzaTeorica)
+                        expected = Instant.fromEpochMilliseconds(partenzaTeorica)
                             .plus(delay)
                             .toLocalDateTime(TimeZone.UTC),
-                        actual = stop.partenzaReale?.asLocalDateTime(),
+                        actual = partenzaReale?.asUTCDateTime(),
                     )
                 },
-            status = stop.getStatus()
+            status = getStatus()
         )
     }
+
+    private suspend fun Fermata.toStation() = getStationByIdOrNull(id)
+        ?: error("Can't find station details for station with id '$id'")
 
     private suspend fun getStationByNameOrNull(name: String): Station? {
         val result = stationApiWrapper.searchStations(name)
@@ -278,9 +288,16 @@ class ViaggiaTrenoTripsProvider(
             .firstOrNull()
             ?: return null
 
+        return getStationByIdOrNull(result.id)
+    }
+
+    private suspend fun getStationByIdOrNull(stationId: String): Station? {
+        val result = stationApiWrapper.getStationDetails(stationId).data ?: return null
+        val details = result.toStation()
+
         return Station(
-            id = result.id,
-            name = result.nomeBreve,
+            id = stationId,
+            name = details.name,
         )
     }
 
