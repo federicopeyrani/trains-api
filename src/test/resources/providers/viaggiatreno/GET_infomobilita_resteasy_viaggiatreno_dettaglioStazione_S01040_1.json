@@ -1,0 +1,27 @@
+{
+  "key": "S01040_1",
+  "codReg": 1,
+  "tipoStazione": 3,
+  "dettZoomStaz": [],
+  "pstaz": [],
+  "mappaCitta": {
+    "urlImagePinpoint": "",
+    "urlImageBaloon": ""
+  },
+  "codiceStazione": "S01040",
+  "codStazione": "S01040",
+  "lat": 45.468204,
+  "lon": 8.880633,
+  "latMappaCitta": 0.0,
+  "lonMappaCitta": 0.0,
+  "localita": {
+    "nomeLungo": "MAGENTA",
+    "nomeBreve": "Magenta",
+    "label": "Magenta",
+    "id": "S01040"
+  },
+  "esterno": false,
+  "offsetX": 0,
+  "offsetY": 0,
+  "nomeCitta": "A"
+}

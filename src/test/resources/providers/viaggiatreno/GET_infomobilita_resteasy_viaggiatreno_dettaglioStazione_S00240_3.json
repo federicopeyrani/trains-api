@@ -1,0 +1,50 @@
+{
+  "key": "S00240_3",
+  "codReg": 3,
+  "tipoStazione": 3,
+  "dettZoomStaz": [
+    {
+      "key": "S00240_3",
+      "codiceStazione": "S00240",
+      "zoomStartRange": 8,
+      "zoomStopRange": 9,
+      "pinpointVisibile": true,
+      "pinpointVisible": true,
+      "labelVisibile": false,
+      "labelVisible": false,
+      "codiceRegione": 3
+    },
+    {
+      "key": "S00240_3",
+      "codiceStazione": "S00240",
+      "zoomStartRange": 10,
+      "zoomStopRange": 11,
+      "pinpointVisibile": true,
+      "pinpointVisible": true,
+      "labelVisibile": true,
+      "labelVisible": true,
+      "codiceRegione": 3
+    }
+  ],
+  "pstaz": [],
+  "mappaCitta": {
+    "urlImagePinpoint": "",
+    "urlImageBaloon": ""
+  },
+  "codiceStazione": "S00240",
+  "codStazione": "S00240",
+  "lat": 45.363726,
+  "lon": 8.180093,
+  "latMappaCitta": 0.0,
+  "lonMappaCitta": 0.0,
+  "localita": {
+    "nomeLungo": "SANTHIA'",
+    "nomeBreve": "SANTHIA`",
+    "label": "Santhia`",
+    "id": "S00240"
+  },
+  "esterno": false,
+  "offsetX": 45,
+  "offsetY": 18,
+  "nomeCitta": "Santhia`"
+}

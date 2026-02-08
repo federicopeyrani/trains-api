@@ -43,11 +43,11 @@ class TrainsServiceTests(
         trip.let {
             it.from.let {
                 assertEquals(it.id, "S01700")
-                assertEquals(it.name, "MILANO CENTRALE")
+                assertEquals(it.name, "Milano Centrale")
             }
             it.to.let {
                 assertEquals(it.id, "S00452")
-                assertEquals(it.name, "TORINO LINGOTTO")
+                assertEquals(it.name, "Torino Lingotto")
             }
             it.departureTime.let {
                 assertEquals(LocalDateTime(2026, 1, 23, 21, 15), it?.scheduled)

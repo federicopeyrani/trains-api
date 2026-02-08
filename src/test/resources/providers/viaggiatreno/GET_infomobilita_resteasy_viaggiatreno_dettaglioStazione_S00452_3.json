@@ -1,0 +1,27 @@
+{
+  "key": "S00452_3",
+  "codReg": 3,
+  "tipoStazione": 3,
+  "dettZoomStaz": [],
+  "pstaz": [],
+  "mappaCitta": {
+    "urlImagePinpoint": "",
+    "urlImageBaloon": ""
+  },
+  "codiceStazione": "S00452",
+  "codStazione": "S00452",
+  "lat": 45.0266,
+  "lon": 7.657469,
+  "latMappaCitta": 0.0,
+  "lonMappaCitta": 0.0,
+  "localita": {
+    "nomeLungo": "TORINO LINGOTTO",
+    "nomeBreve": "TO.LINGOTTO",
+    "label": "To.lingotto",
+    "id": "S00452"
+  },
+  "esterno": false,
+  "offsetX": 0,
+  "offsetY": 0,
+  "nomeCitta": "A"
+}

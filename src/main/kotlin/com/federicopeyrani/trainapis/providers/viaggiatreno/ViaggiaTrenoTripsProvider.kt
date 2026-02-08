@@ -27,6 +27,7 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atDate
 import kotlinx.datetime.toLocalDateTime
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -45,6 +46,7 @@ import kotlin.time.Instant
 class ViaggiaTrenoTripsProvider(
     private val trainsApiWrapper: ViaggiaTrenoTrainsApiWrapper,
     private val stationApiWrapper: ViaggiaTrenoStationsApiWrapper,
+    @Value($$"${providers.viaggiatreno.concurrency}") private val concurrency: Int,
 ) : TripsProvider {
 
     companion object {
@@ -65,7 +67,7 @@ class ViaggiaTrenoTripsProvider(
 
         data
             .asFlow()
-            .flatMapMerge(concurrency = 10) { trip ->
+            .flatMapMerge(concurrency = concurrency) { trip ->
                 flow {
                     val train = trainsApiWrapper.getTrainOrNull(trip)
                     val details = getTripDetails(
@@ -85,7 +87,7 @@ class ViaggiaTrenoTripsProvider(
 
         data
             .asFlow()
-            .flatMapMerge(concurrency = 10) { trip ->
+            .flatMapMerge(concurrency = concurrency) { trip ->
                 flow {
                     val trainCacheElement = trainsApiWrapper.getTrainOrNull(trip) ?: run {
                         log.warn("Skipping train ${trip.numeroTreno} as train details could not be fetched")

@@ -1,0 +1,50 @@
+{
+  "key": "S00248_3",
+  "codReg": 3,
+  "tipoStazione": 3,
+  "dettZoomStaz": [
+    {
+      "key": "S00248_3",
+      "codiceStazione": "S00248",
+      "zoomStartRange": 8,
+      "zoomStopRange": 9,
+      "pinpointVisibile": true,
+      "pinpointVisible": true,
+      "labelVisibile": true,
+      "labelVisible": true,
+      "codiceRegione": 3
+    },
+    {
+      "key": "S00248_3",
+      "codiceStazione": "S00248",
+      "zoomStartRange": 10,
+      "zoomStopRange": 11,
+      "pinpointVisibile": true,
+      "pinpointVisible": true,
+      "labelVisibile": true,
+      "labelVisible": true,
+      "codiceRegione": 3
+    }
+  ],
+  "pstaz": [],
+  "mappaCitta": {
+    "urlImagePinpoint": "",
+    "urlImageBaloon": ""
+  },
+  "codiceStazione": "S00248",
+  "codStazione": "S00248",
+  "lat": 45.451376,
+  "lon": 8.624895,
+  "latMappaCitta": 0.0,
+  "lonMappaCitta": 0.0,
+  "localita": {
+    "nomeLungo": "NOVARA",
+    "nomeBreve": "NOVARA",
+    "label": "Novara",
+    "id": "S00248"
+  },
+  "esterno": false,
+  "offsetX": 0,
+  "offsetY": 0,
+  "nomeCitta": "Novara"
+}

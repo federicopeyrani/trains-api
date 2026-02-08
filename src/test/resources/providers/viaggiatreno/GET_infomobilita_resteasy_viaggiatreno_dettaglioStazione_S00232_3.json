@@ -1,0 +1,50 @@
+{
+  "key": "S00232_3",
+  "codReg": 3,
+  "tipoStazione": 3,
+  "dettZoomStaz": [
+    {
+      "key": "S00232_3",
+      "codiceStazione": "S00232",
+      "zoomStartRange": 8,
+      "zoomStopRange": 9,
+      "pinpointVisibile": true,
+      "pinpointVisible": true,
+      "labelVisibile": false,
+      "labelVisible": false,
+      "codiceRegione": 3
+    },
+    {
+      "key": "S00232_3",
+      "codiceStazione": "S00232",
+      "zoomStartRange": 10,
+      "zoomStopRange": 11,
+      "pinpointVisibile": true,
+      "pinpointVisible": true,
+      "labelVisibile": true,
+      "labelVisible": true,
+      "codiceRegione": 3
+    }
+  ],
+  "pstaz": [],
+  "mappaCitta": {
+    "urlImagePinpoint": "",
+    "urlImageBaloon": ""
+  },
+  "codiceStazione": "S00232",
+  "codStazione": "S00232",
+  "lat": 45.193637,
+  "lon": 7.889666,
+  "latMappaCitta": 0.0,
+  "lonMappaCitta": 0.0,
+  "localita": {
+    "nomeLungo": "CHIVASSO",
+    "nomeBreve": "CHIVASSO",
+    "label": "Chivasso",
+    "id": "S00232"
+  },
+  "esterno": false,
+  "offsetX": 0,
+  "offsetY": 0,
+  "nomeCitta": "Chivasso"
+}

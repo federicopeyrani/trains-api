@@ -1,0 +1,27 @@
+{
+  "key": "S01039_1",
+  "codReg": 1,
+  "tipoStazione": 3,
+  "dettZoomStaz": [],
+  "pstaz": [],
+  "mappaCitta": {
+    "urlImagePinpoint": "",
+    "urlImageBaloon": ""
+  },
+  "codiceStazione": "S01039",
+  "codStazione": "S01039",
+  "lat": 45.521258181045,
+  "lon": 9.0880387885461,
+  "latMappaCitta": 0.0,
+  "lonMappaCitta": 0.0,
+  "localita": {
+    "nomeLungo": "RHO FIERA",
+    "nomeBreve": "Rho Fiera",
+    "label": "Rho",
+    "id": "S01039"
+  },
+  "esterno": false,
+  "offsetX": 0,
+  "offsetY": 0,
+  "nomeCitta": "A"
+}

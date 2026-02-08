@@ -1,0 +1,50 @@
+{
+  "key": "S00245_3",
+  "codReg": 3,
+  "tipoStazione": 3,
+  "dettZoomStaz": [
+    {
+      "key": "S00245_3",
+      "codiceStazione": "S00245",
+      "zoomStartRange": 8,
+      "zoomStopRange": 9,
+      "pinpointVisibile": true,
+      "pinpointVisible": true,
+      "labelVisibile": true,
+      "labelVisible": true,
+      "codiceRegione": 3
+    },
+    {
+      "key": "S00245_3",
+      "codiceStazione": "S00245",
+      "zoomStartRange": 10,
+      "zoomStopRange": 11,
+      "pinpointVisibile": true,
+      "pinpointVisible": true,
+      "labelVisibile": true,
+      "labelVisible": true,
+      "codiceRegione": 3
+    }
+  ],
+  "pstaz": [],
+  "mappaCitta": {
+    "urlImagePinpoint": "",
+    "urlImageBaloon": ""
+  },
+  "codiceStazione": "S00245",
+  "codStazione": "S00245",
+  "lat": 45.329909,
+  "lon": 8.416028,
+  "latMappaCitta": 0.0,
+  "lonMappaCitta": 0.0,
+  "localita": {
+    "nomeLungo": "VERCELLI",
+    "nomeBreve": "VERCELLI",
+    "label": "Vercelli",
+    "id": "S00245"
+  },
+  "esterno": false,
+  "offsetX": 0,
+  "offsetY": 0,
+  "nomeCitta": "Vercelli"
+}
