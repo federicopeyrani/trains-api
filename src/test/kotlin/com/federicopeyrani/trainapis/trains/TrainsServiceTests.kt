@@ -8,6 +8,7 @@ import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoStations
 import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoTrainsApiWrapper
 import com.federicopeyrani.trainapis.providers.viaggiatreno.ViaggiaTrenoTripsProvider
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -38,7 +39,8 @@ class TrainsServiceTests(
     fun `should fetch departures`() = runTest {
         val zone = TimeZone.of("Europe/Rome")
         val date = LocalDateTime(2026, 1, 23, 22, 20, 30).toInstant(zone)
-        val trip = trainsService.getDepartures("S01700", date).first()
+        val trips = trainsService.getDepartures("S01700", date).toList()
+        val trip = trips.first { it.to.station.id == "S00452" }
 
         trip.let {
             it.from.let {
