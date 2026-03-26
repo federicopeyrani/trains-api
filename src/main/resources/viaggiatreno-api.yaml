@@ -517,7 +517,8 @@ components:
           nullable: true
           description: Foreign destination (for international trains)
         oraPartenzaEstera:
-          type: string
+          type: number
+          format: int64
           nullable: true
           description: Foreign departure time
         oraArrivoEstera:
@@ -798,7 +799,8 @@ components:
           nullable: true
           description: Foreign destination station (for international trains)
         oraPartenzaEstera:
-          type: string
+          type: number
+          format: int64
           nullable: true
           description: Foreign departure time
         oraArrivoEstera:
