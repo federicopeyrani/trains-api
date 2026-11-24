@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm") version "2.4.21"
     kotlin("plugin.spring") version "2.4.21"
     kotlin("plugin.serialization") version "2.4.21"
-    id("org.springframework.boot") version "4.1.3"
+    id("org.springframework.boot") version "4.2.0"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.openapi.generator") version "7.27.0"
 }
@@ -66,7 +66,7 @@ dependencies {
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("io.mockk:mockk:1.14.12")
-    testImplementation("com.ninja-squad:springmockk:4.0.2")
+    testImplementation("com.ninja-squad:springmockk:5.0.1")
 }
 
 kotlin {
