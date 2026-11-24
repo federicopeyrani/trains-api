@@ -19,6 +19,8 @@ java {
     }
 }
 
+ext["kotlin-coroutines.version"] = "1.11.0"
+
 repositories {
     mavenCentral()
 }
@@ -31,7 +33,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("io.swagger.core.v3:swagger-annotations:2.2.26")
+    implementation("io.swagger.core.v3:swagger-annotations:2.2.56")
     implementation("jakarta.validation:jakarta.validation-api")
     implementation("jakarta.annotation:jakarta.annotation-api")
 
@@ -48,22 +50,22 @@ dependencies {
     // Spring Cache
     implementation("org.springframework.boot:spring-boot-starter-cache")
 
-    implementation("io.ktor:ktor-client-core:3.3.3")
-    implementation("io.ktor:ktor-client-content-negotiation:3.3.3")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.3")
-    implementation("io.ktor:ktor-client-java:3.3.3")
-    implementation("io.ktor:ktor-client-logging:3.3.3")
-    testImplementation("io.ktor:ktor-client-mock:3.3.3")
+    implementation("io.ktor:ktor-client-core:3.6.1")
+    implementation("io.ktor:ktor-client-content-negotiation:3.6.1")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.6.1")
+    implementation("io.ktor:ktor-client-java:3.6.1")
+    implementation("io.ktor:ktor-client-logging:3.6.1")
+    testImplementation("io.ktor:ktor-client-mock:3.6.1")
     implementation("ch.qos.logback:logback-classic:1.5.25")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("io.mockk:mockk:1.14.12")
     testImplementation("com.ninja-squad:springmockk:4.0.2")
 }
 
