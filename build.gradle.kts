@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm") version "2.4.21"
     kotlin("plugin.spring") version "2.4.21"
     kotlin("plugin.serialization") version "2.4.21"
-    id("org.springframework.boot") version "4.0.1"
+    id("org.springframework.boot") version "4.1.3"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.openapi.generator") version "7.27.0"
 }
@@ -56,7 +56,7 @@ dependencies {
     implementation("io.ktor:ktor-client-java:3.6.1")
     implementation("io.ktor:ktor-client-logging:3.6.1")
     testImplementation("io.ktor:ktor-client-mock:3.6.1")
-    implementation("ch.qos.logback:logback-classic:1.5.25")
+    implementation("ch.qos.logback:logback-classic")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
