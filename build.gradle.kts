@@ -19,8 +19,6 @@ java {
     }
 }
 
-ext["kotlin-coroutines.version"] = "1.11.0"
-
 repositories {
     mavenCentral()
 }
