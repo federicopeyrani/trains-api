@@ -40,7 +40,11 @@ class ViaggiaTrenoStationsApiWrapper(
 
         log.info("Got region code '$regionCode' for station '$stationId', fetching station details")
 
-        stationsApi.dettaglioStazione(stationId, regionCode).body()
+        val response = stationsApi.dettaglioStazione(stationId, regionCode)
+        when (response.status) {
+            204 -> null
+            else -> response.body()
+        }
     }
 
     private suspend fun getRegionCode(stationId: String) = cache.getOrPut(

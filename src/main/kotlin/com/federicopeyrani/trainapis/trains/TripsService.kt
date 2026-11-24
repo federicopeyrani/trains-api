@@ -8,6 +8,7 @@ import com.federicopeyrani.trainapis.utils.log
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.asFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapMerge
 import org.springframework.stereotype.Service
 import kotlin.time.Clock
@@ -27,6 +28,7 @@ class TripsService(
     }
 
     fun getStations(query: String): Flow<StationDetails> {
+        if (query.isBlank()) return emptyFlow()
         log.info("Getting stations for query '$query'")
         return stationsProvider.getStations(query)
     }
