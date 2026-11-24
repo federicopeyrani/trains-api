@@ -11,8 +11,6 @@ import com.federicopeyrani.trainapis.model.StopStatus
 import com.federicopeyrani.trainapis.model.Timing
 import com.federicopeyrani.trainapis.model.Train
 import com.federicopeyrani.trainapis.model.Trip
-import com.federicopeyrani.trainapis.model.TripFrom
-import com.federicopeyrani.trainapis.model.TripTo
 import com.federicopeyrani.trainapis.providers.TripsProvider
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.AndamentoTreno
 import com.federicopeyrani.trainapis.providers.viaggiatreno.client.model.Fermata
@@ -151,7 +149,7 @@ class ViaggiaTrenoTripsProvider(
         val tripDate = trip.dataPartenzaTreno.asProviderDateTime().date
 
         return Trip(
-            from = TripFrom(
+            from = OriginStop(
                 station = fromStop?.value
                     ?.toStation()
                     ?: getStationByIdOrNull(from)
@@ -169,7 +167,7 @@ class ViaggiaTrenoTripsProvider(
                     actual = fromStop?.value?.partenzaReale?.asUTCDateTime(),
                 ),
             ),
-            to = TripTo(
+            to = DestinationStop(
                 station = destinationStop?.value?.toStation()
                 // `codDestinazione` can actually be null for some trips
                 // `destinazione` seems to always be non-null though

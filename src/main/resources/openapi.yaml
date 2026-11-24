@@ -191,13 +191,9 @@ components:
         - lastUpdate
       properties:
         from:
-          oneOf:
-            - $ref: '#/components/schemas/IntermediateStop'
-            - $ref: '#/components/schemas/OriginStop'
+          $ref: '#/components/schemas/OriginStop'
         to:
-          oneOf:
-            - $ref: '#/components/schemas/IntermediateStop'
-            - $ref: '#/components/schemas/DestinationStop'
+          $ref: '#/components/schemas/DestinationStop'
         lastUpdate:
           $ref: '#/components/schemas/LastUpdated'
         lastUpdateFromProvider:

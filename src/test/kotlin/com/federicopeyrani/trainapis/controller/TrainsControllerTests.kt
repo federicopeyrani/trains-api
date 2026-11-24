@@ -1,10 +1,10 @@
 package com.federicopeyrani.trainapis.controller
 
+import com.federicopeyrani.trainapis.model.DestinationStop
+import com.federicopeyrani.trainapis.model.OriginStop
 import com.federicopeyrani.trainapis.model.Station
 import com.federicopeyrani.trainapis.model.Timing
 import com.federicopeyrani.trainapis.model.Trip
-import com.federicopeyrani.trainapis.model.TripFrom
-import com.federicopeyrani.trainapis.model.TripTo
 import com.federicopeyrani.trainapis.trains.TripsService
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.coEvery
@@ -29,7 +29,7 @@ class TrainsControllerTests(
     fun `should encode as JSON`() = runTest {
         coEvery { tripsService.getDepartures("S01700", any()) } returns flowOf(
             Trip(
-                from = TripFrom(
+                from = OriginStop(
                     station = Station(
                         id = "S01700",
                         name = "MILANO CENTRALE",
@@ -40,7 +40,7 @@ class TrainsControllerTests(
                         actual = LocalDateTime(2026, 1, 23, 22, 18),
                     ),
                 ),
-                to = TripTo(
+                to = DestinationStop(
                     station = Station(
                         id = "S00452",
                         name = "TORINO LINGOTTO",

@@ -1,12 +1,12 @@
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 
 plugins {
-    kotlin("jvm") version "2.2.21"
-    kotlin("plugin.spring") version "2.2.21"
-    kotlin("plugin.serialization") version "2.3.0"
+    kotlin("jvm") version "2.4.21"
+    kotlin("plugin.spring") version "2.4.21"
+    kotlin("plugin.serialization") version "2.4.21"
     id("org.springframework.boot") version "4.0.1"
     id("io.spring.dependency-management") version "1.1.7"
-    id("org.openapi.generator") version "7.19.0"
+    id("org.openapi.generator") version "7.27.0"
 }
 
 group = "com.federicopeyrani"
@@ -71,7 +71,7 @@ dependencies {
 
 kotlin {
     compilerOptions {
-        freeCompilerArgs.addAll("-Xjsr305=strict", "-Xannotation-default-target=param-property")
+        freeCompilerArgs.addAll("-Xjsr305=strict")
     }
 }
 
@@ -81,8 +81,8 @@ tasks.withType<Test> {
 
 tasks.named("openApiGenerate", GenerateTask::class) {
     generatorName = "kotlin-spring"
-    inputSpec = "$rootDir/src/main/resources/openapi.yaml"
-    outputDir = layout.buildDirectory.dir("generated").get().asFile.path
+    inputSpec = layout.projectDirectory.file("src/main/resources/openapi.yaml")
+    outputDir = layout.buildDirectory.dir("generated")
     apiPackage = "com.federicopeyrani.trainapis.api"
     modelPackage = "com.federicopeyrani.trainapis.model"
     configOptions = mapOf(
@@ -108,8 +108,8 @@ tasks.named("openApiGenerate", GenerateTask::class) {
 
 tasks.register("openApiGenerateViaggiatreno", GenerateTask::class) {
     generatorName = "kotlin"
-    inputSpec = "$rootDir/src/main/resources/viaggiatreno-api.yaml"
-    outputDir = layout.buildDirectory.dir("generated-viaggiatreno").get().asFile.path
+    inputSpec = layout.projectDirectory.file("src/main/resources/viaggiatreno-api.yaml")
+    outputDir = layout.buildDirectory.dir("generated-viaggiatreno")
     apiPackage = "com.federicopeyrani.trainapis.providers.viaggiatreno.client.api"
     modelPackage = "com.federicopeyrani.trainapis.providers.viaggiatreno.client.model"
     configOptions = mapOf(
