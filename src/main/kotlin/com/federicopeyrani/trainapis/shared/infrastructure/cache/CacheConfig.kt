@@ -1,21 +1,12 @@
 package com.federicopeyrani.trainapis.shared.infrastructure.cache
 
-import org.springframework.cache.CacheManager
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import kotlin.time.Clock
 
 @Configuration
 class CacheConfig {
 
-    companion object {
-
-        private const val CACHE = "viaggiatreno"
-    }
-
     @Bean
-    fun cacheManager(): CacheManager = ConcurrentMapCacheManager(CACHE)
-
-    @Bean
-    fun cache(factory: Cache.Factory): Cache = factory.create(CACHE)
+    fun cache(clock: Clock) = Cache(clock)
 }

@@ -41,8 +41,6 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-    // Spring Cache
-    implementation("org.springframework.boot:spring-boot-starter-cache")
 
     implementation("io.ktor:ktor-client-core:3.6.1")
     implementation("io.ktor:ktor-client-content-negotiation:3.6.1")

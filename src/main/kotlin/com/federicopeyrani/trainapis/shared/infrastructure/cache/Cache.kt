@@ -1,20 +1,28 @@
 package com.federicopeyrani.trainapis.shared.infrastructure.cache
 
-import org.springframework.cache.CacheManager
-import org.springframework.stereotype.Component
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Clock
 import kotlin.time.Duration
 
+/**
+ * In-memory, coroutine-aware TTL cache.
+ *
+ * - **Single flight**: concurrent [getOrPut] calls for the same key share one computation instead of all
+ *   hitting the upstream service.
+ * - **Bounded**: once more than [maxEntries] entries are stored, expired entries are purged first, then the
+ *   oldest ones, down to 90% of the limit.
+ * - **Failures are not cached**: if the computation throws, the entry is dropped and waiting callers receive
+ *   the same exception.
+ */
 class Cache(
-    private val cacheManager: CacheManager,
-    private val name: String,
+    private val clock: Clock,
+    private val maxEntries: Int = 10_000,
 ) {
-
-    @Component
-    class Factory(private val cacheManager: CacheManager) {
-
-        fun create(name: String) = Cache(cacheManager, name)
-    }
 
     fun interface Key<T> {
 
@@ -32,22 +40,81 @@ class Cache(
         fun asString(): String
     }
 
-    private val cache by lazy { cacheManager.getCache(name) ?: error("No cache found with name: $name") }
+    private val entries = ConcurrentHashMap<String, Deferred<CacheElement<*>>>()
+
+    val size get() = entries.size
 
     @Suppress("UNCHECKED_CAST")
-    operator fun <T> get(key: Key<T>) = cache
-        .get(key.asString(), CacheElement::class.java)
-        ?.takeIf { Clock.System.now() - it.timestamp < it.ttl }
-            as? CacheElement<T>
-
-    fun <T> put(key: Key<T>, value: T, ttl: Duration = Duration.INFINITE) = CacheElement
-        .of(value, ttl)
-        .also { cache.put(key.asString(), it) }
-
-    inline fun <reified T> getOrPut(
+    suspend fun <T> getOrPut(
         key: Key<T>,
         ttl: (T) -> Duration = { Duration.INFINITE },
-        block: () -> T,
-    ) =
-        get(key) ?: block().let { put(key, it, ttl(it)) }
+        block: suspend () -> T,
+    ): CacheElement<T> {
+        val id = key.asString()
+
+        while (true) {
+            val existing = entries[id]
+
+            if (existing != null) {
+                val element = try {
+                    existing.await()
+                } catch (e: CancellationException) {
+                    // The caller computing the value was cancelled: retry (and possibly compute) unless we are too
+                    currentCoroutineContext().ensureActiveOrRethrow(e)
+                    continue
+                }
+
+                if (element.isFresh()) return element as CacheElement<T>
+
+                entries.remove(id, existing)
+                continue
+            }
+
+            val computation = CompletableDeferred<CacheElement<*>>()
+            if (entries.putIfAbsent(id, computation) != null) continue
+
+            try {
+                val value = block()
+                val element = CacheElement(data = value, timestamp = clock.now(), ttl = ttl(value))
+                computation.complete(element)
+                evictIfNeeded()
+                return element
+            } catch (e: Throwable) {
+                entries.remove(id, computation)
+                computation.completeExceptionally(e)
+                throw e
+            }
+        }
+    }
+
+    private fun CacheElement<*>.isFresh() = clock.now() - timestamp < ttl
+
+    private fun evictIfNeeded() {
+        if (entries.size <= maxEntries) return
+
+        val completed = entries.entries
+            .filter { it.value.isCompleted && !it.value.isCancelled }
+            .map { it to completedElementOrNull(it.value) }
+
+        completed
+            .filter { (_, element) -> element == null || !element.isFresh() }
+            .forEach { (entry, _) -> entries.remove(entry.key, entry.value) }
+
+        val target = maxEntries * 9 / 10
+        if (entries.size <= target) return
+
+        completed
+            .mapNotNull { (entry, element) -> element?.let { entry to it } }
+            .sortedBy { (_, element) -> element.timestamp }
+            .take(entries.size - target)
+            .forEach { (entry, _) -> entries.remove(entry.key, entry.value) }
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private fun completedElementOrNull(deferred: Deferred<CacheElement<*>>) =
+        runCatching { deferred.getCompleted() }.getOrNull()
+
+    private fun kotlin.coroutines.CoroutineContext.ensureActiveOrRethrow(e: CancellationException) {
+        if (!isActive) throw e
+    }
 }

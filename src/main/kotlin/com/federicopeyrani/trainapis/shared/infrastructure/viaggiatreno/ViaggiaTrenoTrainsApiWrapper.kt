@@ -1,9 +1,11 @@
 package com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno
 
 import com.federicopeyrani.trainapis.shared.infrastructure.cache.Cache
+import com.federicopeyrani.trainapis.shared.infrastructure.cache.CacheElement
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.api.TrainsApi
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.PartenzeArrivi
 import com.federicopeyrani.trainapis.shared.util.log
+import kotlinx.coroutines.CancellationException
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
@@ -47,18 +49,26 @@ class ViaggiaTrenoTrainsApiWrapper(
         private val zone = TimeZone.of("Europe/Rome")
     }
 
-    suspend fun getDepartures(
-        from: String,
-        date: Instant,
-    ) = cache.getOrPut(
-        key = Cache.Key.of("departures-$from-${date}"),
-        ttl = { 10.minutes }
-    ) {
+    /**
+     * Departure board of station [from] at [date].
+     *
+     * The date is truncated to the minute so that requests for "now" share cache entries instead of creating a new
+     * one per call.
+     */
+    suspend fun getDepartures(from: String, date: Instant): CacheElement<List<PartenzeArrivi>> {
+        val minute = Instant.fromEpochSeconds(date.epochSeconds - date.epochSeconds.mod(60L))
+        return cache.getOrPut(
+            key = Cache.Key.of("departures-$from-$minute"),
+            ttl = { 10.minutes },
+        ) { fetchDepartures(from, minute) }
+    }
+
+    private suspend fun fetchDepartures(from: String, date: Instant): List<PartenzeArrivi> {
         val formattedDate = date.toLocalDateTime(zone).format(dateFormatter)
 
         log.info("Fetching departures from ViaggiaTreno for station '$from' at date '$formattedDate'")
 
-        trainsApi
+        return trainsApi
             .getPartenze(from, formattedDate)
             .body()
     }
@@ -67,9 +77,14 @@ class ViaggiaTrenoTrainsApiWrapper(
         getTrain(trip.codOrigine, trip.numeroTreno, trip.dataPartenzaTreno)
 
     suspend fun getTrainOrNull(trip: PartenzeArrivi) =
-        runCatching { getTrain(trip) }
-            .onFailure { log.warn("Failed to fetch train details for train ${trip.numeroTreno}", it) }
-            .getOrNull()
+        try {
+            getTrain(trip)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            log.warn("Failed to fetch train details for train ${trip.numeroTreno}", e)
+            null
+        }
 
     suspend fun getTrain(
         from: String,

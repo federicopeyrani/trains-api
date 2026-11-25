@@ -13,7 +13,6 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.junit.jupiter.api.Test
-import org.springframework.cache.concurrent.ConcurrentMapCacheManager
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.time.Clock
@@ -24,7 +23,7 @@ import kotlin.time.Clock
 class TripServiceTests {
 
     private val engine = mockEngine("/providers/viaggiatreno")
-    private val cache = Cache(ConcurrentMapCacheManager("test"), "test")
+    private val cache = Cache(Clock.System)
 
     private val tripService = TripService(
         provider = ViaggiaTrenoTripsProvider(
@@ -38,7 +37,7 @@ class TripServiceTests {
     @Test
     fun `should fetch departures`() = runTest {
         val zone = TimeZone.of("Europe/Rome")
-        val date = LocalDateTime(2026, 1, 23, 22, 20, 30).toInstant(zone)
+        val date = LocalDateTime(2026, 1, 23, 22, 20).toInstant(zone)
         val trips = tripService.getDepartures("S01700", date).toList()
         val trip = trips.first { it.to.station.id == "S00452" }
 
