@@ -1,39 +1,39 @@
 package com.federicopeyrani.trainapis.trip.application
 
+import com.federicopeyrani.trainapis.mockEngine
 import com.federicopeyrani.trainapis.shared.infrastructure.cache.Cache
-import com.federicopeyrani.trainapis.shared.infrastructure.time.ClockConfig
-import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoConfig
-import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoMockEngineConfiguration
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoClients
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoProperties
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationsApiWrapper
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoTrainsApiWrapper
 import com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno.ViaggiaTrenoTripsProvider
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.time.Clock
 
-@SpringBootTest(
-    classes = [
-        TripService::class,
-        ViaggiaTrenoTripsProvider::class,
-        ViaggiaTrenoTrainsApiWrapper::class,
-        ViaggiaTrenoStationsApiWrapper::class,
-        ViaggiaTrenoConfig::class,
-        Cache.Factory::class,
-        ClockConfig::class,
-        ViaggiaTrenoMockEngineConfiguration::class,
-    ]
-)
-class TripServiceTests(
-    @Autowired private val tripService: TripService,
-) {
+/**
+ * Runs the real service and ViaggiaTreno adapter against recorded upstream responses (no Spring context).
+ */
+class TripServiceTests {
+
+    private val engine = mockEngine("/providers/viaggiatreno")
+    private val cache = Cache(ConcurrentMapCacheManager("test"), "test")
+
+    private val tripService = TripService(
+        provider = ViaggiaTrenoTripsProvider(
+            trainsApiWrapper = ViaggiaTrenoTrainsApiWrapper(ViaggiaTrenoClients.trainsApi(engine), cache),
+            stationApiWrapper = ViaggiaTrenoStationsApiWrapper(ViaggiaTrenoClients.stationsApi(engine), cache),
+            properties = ViaggiaTrenoProperties(),
+        ),
+        clock = Clock.System,
+    )
 
     @Test
     fun `should fetch departures`() = runTest {

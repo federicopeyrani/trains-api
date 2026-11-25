@@ -1,6 +1,7 @@
 package com.federicopeyrani.trainapis.station.adapter.outbound.viaggiatreno
 
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationsApiWrapper
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoProperties
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.StazioneDettagliata
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.displayName
 import com.federicopeyrani.trainapis.station.application.port.outbound.StationsProvider
@@ -10,21 +11,21 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
-import org.springframework.beans.factory.annotation.Value
+
 import org.springframework.stereotype.Component
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @Component
 class ViaggiaTrenoStationsProvider(
     private val viaggiaTrenoStationsApiWrapper: ViaggiaTrenoStationsApiWrapper,
-    @Value($$"${providers.viaggiatreno.concurrency}") private val concurrency: Int,
+    private val properties: ViaggiaTrenoProperties,
 ) : StationsProvider {
 
     override fun getStations(query: String) = flow {
         viaggiaTrenoStationsApiWrapper.searchStations(query)
             .data
             .asFlow()
-            .flatMapMerge(concurrency = concurrency) {
+            .flatMapMerge(concurrency = properties.concurrency) {
                 flow {
                     viaggiaTrenoStationsApiWrapper
                         .getStationDetails(it.id)

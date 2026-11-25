@@ -3,6 +3,7 @@ package com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno
 import com.federicopeyrani.trainapis.shared.domain.Station
 import com.federicopeyrani.trainapis.shared.infrastructure.cache.CacheElement
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationsApiWrapper
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoProperties
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoTrainsApiWrapper
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.AndamentoTreno
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.Fermata
@@ -31,13 +32,12 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atDate
 import kotlinx.datetime.toLocalDateTime
-import org.springframework.beans.factory.annotation.Value
+
 import org.springframework.stereotype.Component
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-
 
 /**
  * Outbound adapter implementing [TripsProvider] on top of the ViaggiaTreno API.
@@ -49,7 +49,7 @@ import kotlin.time.Instant
 class ViaggiaTrenoTripsProvider(
     private val trainsApiWrapper: ViaggiaTrenoTrainsApiWrapper,
     private val stationApiWrapper: ViaggiaTrenoStationsApiWrapper,
-    @Value($$"${providers.viaggiatreno.concurrency}") private val concurrency: Int,
+    private val properties: ViaggiaTrenoProperties,
 ) : TripsProvider {
 
     companion object {
@@ -70,7 +70,7 @@ class ViaggiaTrenoTripsProvider(
 
         data
             .asFlow()
-            .flatMapMerge(concurrency = concurrency) { trip ->
+            .flatMapMerge(concurrency = properties.concurrency) { trip ->
                 flow {
                     val train = trainsApiWrapper.getTrainOrNull(trip)
                     val details = getTripDetails(
@@ -90,7 +90,7 @@ class ViaggiaTrenoTripsProvider(
 
         data
             .asFlow()
-            .flatMapMerge(concurrency = concurrency) { trip ->
+            .flatMapMerge(concurrency = properties.concurrency) { trip ->
                 flow {
                     val trainCacheElement = trainsApiWrapper.getTrainOrNull(trip) ?: run {
                         log.warn("Skipping train ${trip.numeroTreno} as train details could not be fetched")
