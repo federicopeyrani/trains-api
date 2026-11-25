@@ -46,7 +46,12 @@ paths:
         - name: date
           in: query
           required: false
-          description: Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
+          description: |
+            Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
+
+            Results come from the provider's live departure board around that time: trains scheduled from about 15
+            minutes before to about 105 minutes after it, minus those that left the station a while ago. Earlier times
+            give few or no results, and the provider only tracks today's trains, so on other days trips have no run.
           schema:
             type: string
             format: date-time
@@ -90,7 +95,12 @@ paths:
         - name: date
           in: query
           required: false
-          description: Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
+          description: |
+            Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
+
+            Results come from the provider's live departure board around that time: trains scheduled from about 15
+            minutes before to about 105 minutes after it, minus those that left the station a while ago. Earlier times
+            give few or no results, and the provider only tracks today's trains, so on other days trips have no run.
           schema:
             type: string
             format: date-time
@@ -141,7 +151,12 @@ paths:
         - name: date
           in: query
           required: false
-          description: Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
+          description: |
+            Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
+
+            Results come from the provider's live departure board around that time: trains scheduled from about 15
+            minutes before to about 105 minutes after it, minus those that left the station a while ago. Earlier times
+            give few or no results, and the provider only tracks today's trains, so on other days trips have no run.
           schema:
             type: string
             format: date-time
