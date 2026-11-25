@@ -61,6 +61,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testImplementation("io.mockk:mockk:1.14.12")
     testImplementation("com.ninja-squad:springmockk:5.0.1")
+    testImplementation("com.tngtech.archunit:archunit:1.4.2")
 }
 
 kotlin {
@@ -79,6 +80,7 @@ tasks.named("openApiGenerate", GenerateTask::class) {
     outputDir = layout.buildDirectory.dir("generated")
     apiPackage = "com.federicopeyrani.trainapis.api"
     modelPackage = "com.federicopeyrani.trainapis.model"
+    cleanupOutput = true
     configOptions = mapOf(
         "interfaceOnly" to "true",
         "useSpringBoot3" to "true",
@@ -104,8 +106,9 @@ tasks.register("openApiGenerateViaggiatreno", GenerateTask::class) {
     generatorName = "kotlin"
     inputSpec = layout.projectDirectory.file("src/main/resources/viaggiatreno-api.yaml")
     outputDir = layout.buildDirectory.dir("generated-viaggiatreno")
-    apiPackage = "com.federicopeyrani.trainapis.providers.viaggiatreno.client.api"
-    modelPackage = "com.federicopeyrani.trainapis.providers.viaggiatreno.client.model"
+    apiPackage = "com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.api"
+    modelPackage = "com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model"
+    cleanupOutput = true
     configOptions = mapOf(
         "dateLibrary" to "kotlinx-datetime",
         "serializationLibrary" to "kotlinx_serialization",

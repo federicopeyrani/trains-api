@@ -1,0 +1,16 @@
+package com.federicopeyrani.trainapis.shared.infrastructure.web
+
+import java.beans.PropertyEditorSupport
+
+/**
+ * Property editor for converting String to kotlinx.datetime.LocalDateTime.
+ * Used for form parameters and path variables.
+ */
+object LocalDateTimePropertyEditorSupport : PropertyEditorSupport() {
+
+    override fun setAsText(text: String) {
+        val localDateTime = LocalDateTimeFormats.ISO_FORMAT.parse(text)
+        setValue(localDateTime)
+    }
+}
+

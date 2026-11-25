@@ -11,6 +11,7 @@ paths:
     get:
       summary: Get all stations
       operationId: getStations
+      tags: [stations]
       parameters:
         - name: query
           in: query
@@ -31,6 +32,7 @@ paths:
     get:
       summary: Get departures from a station
       operationId: getDepartures
+      tags: [trips]
       parameters:
         - name: from
           in: path
@@ -62,6 +64,7 @@ paths:
     get:
       summary: Get trips between two stations
       operationId: getTrips
+      tags: [trips]
       parameters:
         - name: from
           in: path
@@ -98,6 +101,7 @@ paths:
     get:
       summary: Get trips between multiple stations
       operationId: getAllTrips
+      tags: [trips]
       parameters:
         - name: from
           in: query
@@ -138,6 +142,7 @@ paths:
     get:
       summary: Get details of a specific run
       operationId: getRun
+      tags: [trips]
       parameters:
         - name: runId
           in: path

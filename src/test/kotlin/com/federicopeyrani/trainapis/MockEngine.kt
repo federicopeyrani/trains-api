@@ -1,6 +1,6 @@
 package com.federicopeyrani.trainapis
 
-import com.federicopeyrani.trainapis.utils.log
+import com.federicopeyrani.trainapis.shared.util.log
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.mock.MockEngine
