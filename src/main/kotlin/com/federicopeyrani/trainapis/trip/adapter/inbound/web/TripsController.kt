@@ -3,6 +3,7 @@ package com.federicopeyrani.trainapis.trip.adapter.inbound.web
 import com.federicopeyrani.trainapis.api.TripsApi
 import com.federicopeyrani.trainapis.model.Run
 import com.federicopeyrani.trainapis.model.Trip
+import com.federicopeyrani.trainapis.trip.application.port.inbound.GetAllTripsUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetDeparturesUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetRunUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetTripsUseCase
@@ -13,39 +14,27 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RestController
-import kotlin.time.ExperimentalTime
 
 @RestController
-@OptIn(ExperimentalTime::class)
 class TripsController(
     private val getDeparturesUseCase: GetDeparturesUseCase,
     private val getTripsUseCase: GetTripsUseCase,
+    private val getAllTripsUseCase: GetAllTripsUseCase,
     private val getRunUseCase: GetRunUseCase,
 ) : TripsApi {
 
-    private val zone = TimeZone.currentSystemDefault()
-
     override fun getDepartures(from: String, date: LocalDateTime?): ResponseEntity<Flow<Trip>> {
-        val departures = date
-            ?.toInstant(zone)
-            ?.let { getDeparturesUseCase.getDepartures(from, it) }
-            ?: getDeparturesUseCase.getDepartures(from)
+        val departures = getDeparturesUseCase.getDepartures(from, date?.asUtcInstant())
         return ResponseEntity.ok(departures.map { it.toDto() })
     }
 
     override fun getTrips(from: String, to: String, date: LocalDateTime?): ResponseEntity<Flow<Trip>> {
-        val trips = date
-            ?.toInstant(zone)
-            ?.let { getTripsUseCase.getTrips(from, to, it) }
-            ?: getTripsUseCase.getTrips(from, to)
+        val trips = getTripsUseCase.getTrips(from, to, date?.asUtcInstant())
         return ResponseEntity.ok(trips.map { it.toDto() })
     }
 
     override fun getAllTrips(from: List<String>, to: List<String>, date: LocalDateTime?): ResponseEntity<Flow<Trip>> {
-        val trips = date
-            ?.toInstant(zone)
-            ?.let { getTripsUseCase.getAllTrips(from, to, it) }
-            ?: getTripsUseCase.getAllTrips(from, to)
+        val trips = getAllTripsUseCase.getAllTrips(from, to, date?.asUtcInstant())
         return ResponseEntity.ok(trips.map { it.toDto() })
     }
 
@@ -53,4 +42,9 @@ class TripsController(
         val run = getRunUseCase.getRun(runId)
         return ResponseEntity.ok(run.toDto())
     }
+
+    /**
+     * Request dates carry no offset; like every date returned by the API, they are interpreted as UTC.
+     */
+    private fun LocalDateTime.asUtcInstant() = toInstant(TimeZone.UTC)
 }

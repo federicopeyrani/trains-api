@@ -1,6 +1,7 @@
 package com.federicopeyrani.trainapis.trip.application
 
 import com.federicopeyrani.trainapis.shared.infrastructure.cache.Cache
+import com.federicopeyrani.trainapis.shared.infrastructure.time.ClockConfig
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoConfig
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoMockEngineConfiguration
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationsApiWrapper
@@ -26,6 +27,7 @@ import kotlin.test.assertNotNull
         ViaggiaTrenoStationsApiWrapper::class,
         ViaggiaTrenoConfig::class,
         Cache.Factory::class,
+        ClockConfig::class,
         ViaggiaTrenoMockEngineConfiguration::class,
     ]
 )

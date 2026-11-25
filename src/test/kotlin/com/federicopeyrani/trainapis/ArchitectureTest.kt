@@ -43,6 +43,10 @@ class ArchitectureTest {
         private val classes: JavaClasses = ClassFileImporter()
             .withImportOption(ImportOption.DoNotIncludeTests())
             .importPackages(ROOT)
+
+        private val testClasses: JavaClasses = ClassFileImporter()
+            .withImportOption(ImportOption.OnlyIncludeTests())
+            .importPackages(ROOT)
     }
 
     @Test
@@ -99,5 +103,13 @@ class ArchitectureTest {
             .that().resideInAPackage("$ROOT.shared..")
             .should().dependOnClassesThat().resideInAnyPackage(*features.map { "$ROOT.$it.." }.toTypedArray())
             .check(classes)
+    }
+
+    @Test
+    fun `tests use fakes instead of mocking frameworks`() {
+        noClasses()
+            .should().dependOnClassesThat().resideInAnyPackage("io.mockk..", "com.ninjasquad.springmockk..", "org.mockito..")
+            .because("ports are small interfaces: use in-memory fakes or lambdas instead of mocks")
+            .check(testClasses)
     }
 }

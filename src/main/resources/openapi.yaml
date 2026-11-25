@@ -42,6 +42,7 @@ paths:
         - name: date
           in: query
           required: false
+          description: Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
           schema:
             type: string
             format: date-time
@@ -79,6 +80,7 @@ paths:
         - name: date
           in: query
           required: false
+          description: Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
           schema:
             type: string
             format: date-time
@@ -120,6 +122,7 @@ paths:
         - name: date
           in: query
           required: false
+          description: Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
           schema:
             type: string
             format: date-time

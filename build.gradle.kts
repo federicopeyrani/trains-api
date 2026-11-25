@@ -59,8 +59,6 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-    testImplementation("io.mockk:mockk:1.14.12")
-    testImplementation("com.ninja-squad:springmockk:5.0.1")
     testImplementation("com.tngtech.archunit:archunit:1.4.2")
 }
 
