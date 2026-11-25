@@ -83,7 +83,8 @@ When adding a feature, add its name to `features` in `ArchitectureTest`.
 
 ### Key Design Decisions
 
-- **Ports & adapters**: `StationsProvider` and `TripsProvider` are outbound ports returning domain models, with ViaggiaTreno as the only adapter. This allows swapping data sources.
+- **Ports & adapters**: `StationsProvider` and `TripsProvider` are outbound ports returning domain models, with ViaggiaTreno as the only adapter. The ports keep ViaggiaTreno's types out of the core, but not its identity: `StationId` values are ViaggiaTreno codes (`S01700`), `RunId` is ViaggiaTreno's (origin, train number, departure day) triple, and a trip search is a filtered departure board. A second provider would need an id mapping, or a change to the public contract.
+- **Typed ids**: station ids and train numbers are the `StationId`/`TrainNumber` value classes in the domain, ports and use cases; adapters unwrap them at the HTTP and provider edges.
 - **Reactive with coroutines**: All data flows use `kotlinx.coroutines.flow.Flow`. Concurrent API fan-out uses `flatMapMerge` with configurable concurrency (`providers.viaggiatreno.concurrency`, bound to `ViaggiaTrenoProperties`).
 - **Custom caching**: `Cache` in `shared.infrastructure.cache` is a plain-Kotlin, coroutine-aware TTL cache: concurrent callers for a key share one computation (single flight), failures are not cached, and the size is bounded. The API wrappers use it to cache upstream responses. Departure boards are cached per minute.
 - **Clock**: "now" comes from the injected `kotlin.time.Clock` bean (`ClockConfig`). Never call `Clock.System` directly, so tests can use a fixed or hand-advanced clock.
