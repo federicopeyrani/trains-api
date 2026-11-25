@@ -14,6 +14,6 @@ import org.springframework.web.reactive.config.WebFluxConfigurer
 class WebCodecsConfig : WebFluxConfigurer {
 
     override fun configureHttpMessageCodecs(configurer: ServerCodecConfigurer) {
-        configurer.defaultCodecs().serverSentEventEncoder(KotlinSerializationJsonEncoder())
+        configurer.defaultCodecs().serverSentEventEncoder(KotlinSerializationJsonEncoder(ApiJson))
     }
 }

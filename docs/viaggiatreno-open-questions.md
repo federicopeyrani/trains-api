@@ -48,12 +48,17 @@ used, so a train 40 minutes late is reported `ON_TIME`.
 **Today.**
 - The spec says a cancelled train comes back as `tipoTreno = ST`, `provvedimento = 1`, with an empty `fermate`, or
   `andamentoTreno` may answer 204 ("often for cancelled or rescheduled trains").
-- With an empty `fermate`, `toRun` throws ("has no stops"). `orNull` swallows the error, the departure has no run,
-  and `Departure.serves` is then always false. So the train is missing from `/trips`. It shows up in `/departures`,
-  but with no sign that it is cancelled.
-- As a result, `CANCELLED` is effectively never produced.
+- With an empty `fermate`, `toRun` throws ("has no stops") and the departure is left without its run. Trip searches
+  count it in `unverifiedDepartures` (see 3), but nothing says it is cancelled, so `CANCELLED` is effectively never
+  produced.
 
-**Unknown.** For a cancelled train:
+Part of this is our model, not the API:
+- `Run` requires an origin and a destination stop built from the stop list, so a train without stops has no valid
+  `Run`.
+- `Departure` has no notion of cancellation, although the board entry carries `provvedimento`.
+- The adapter's `orNull` turns every failure (mapping bug, outage, cancelled train) into the same `run = null`.
+
+**Unknown (API).** For a cancelled train:
 - What `partenze` returns: does the entry stay on the board, and with which `provvedimento`/`statoTreno`?
 - Whether `andamentoTreno` answers 200 with empty stops, or 204.
 - Whether partially cancelled trains keep their stop list, and how the cancelled stops are marked
@@ -64,30 +69,25 @@ used, so a train 40 minutes late is reported `ON_TIME`.
 - A partially cancelled train's `fermate`.
 
 **Likely fix.**
+- Model the outcome of fetching a run explicitly instead of `Run?`: found, not known to the provider, could not be
+  fetched, cancelled.
 - Carry the cancellation on `Departure` from the board entry.
-- Build a run without stops (or a cancelled-run shape) instead of failing.
 - Mark cancelled stops so `serves` can exclude them.
+- Decide whether trip searches return cancelled trains (likely yes, flagged), instead of counting them as unverified.
 
-## 3. `/trips` silently drops trains whose run could not be fetched
+## 3. ~~`/trips` silently drops trains whose run could not be fetched~~ (done)
 
-**Today.** `serves` needs the run's stop list, so any train whose `andamentoTreno` call fails (403, 5xx, 204) is
-missing from `/trips` and `/trips/all`. The response is still a 200, and looks exactly like "no trains".
+`Departure.serves` now answers `UNKNOWN` without the run. Trip searches leave those departures out of `trips`, but
+report how many there were: `unverifiedDepartures` in JSON, and a final `summary` event over SSE. Departures whose
+destination cannot be resolved are kept too, so they are counted.
 
-**Unknown.**
-- How often `andamentoTreno` fails or answers 204 for trains that are really running, apart from rate limiting.
-- Whether another endpoint answers "trains from A to B" directly. The ViaggiaTreno website has a journey planner
-  (`soluzioniViaggioNew/...`), but it is not in our spec and its shape and reliability are unknown.
-
-**Look at.**
-- The 204 rate across a few boards.
-- The journey-planner endpoint's payload, and whether it is rate limited separately.
-
-**Likely fix.** One of:
-- Signal partial results (a header, a field, or an SSE event).
-- Fall back to a different endpoint for A→B searches.
-- Return board-only trips flagged as "unverified".
-
-This is a product decision, informed by how often runs are missing.
+Still open:
+- **API:** how often `andamentoTreno` fails or answers 204 for trains that are really running, apart from rate
+  limiting.
+- **API:** whether another endpoint answers "trains from A to B" directly. The ViaggiaTreno website has a journey
+  planner (`soluzioniViaggioNew/...`), but it is not in our spec and its shape and reliability are unknown.
+- **Model:** a departure whose board destination is the searched station certainly reaches it, even without the run.
+  It is still counted as unverified, because the destination comes from a fuzzy name lookup (see 5).
 
 ## 4. "Expected" time means different things at each stop
 

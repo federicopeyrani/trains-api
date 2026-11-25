@@ -93,11 +93,11 @@ object ViaggiaTrenoTripMapper {
 
     /**
      * @param station the station whose board this entry belongs to
-     * @param destination the train's final destination
+     * @param destination the train's final destination, if known
      */
     fun PartenzeArrivi.toDeparture(
         station: Station,
-        destination: Station,
+        destination: Station?,
         boardLastUpdate: Instant,
         run: Run?,
     ) = Departure(

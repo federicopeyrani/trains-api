@@ -1,6 +1,11 @@
 package com.federicopeyrani.trainapis.trip.adapter.inbound.web
 
 import com.federicopeyrani.trainapis.shared.domain.Station
+import com.federicopeyrani.trainapis.shared.infrastructure.web.ApiJson
+import com.federicopeyrani.trainapis.trip.application.port.inbound.TripSearchResult
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import org.springframework.http.codec.ServerSentEvent
 import com.federicopeyrani.trainapis.trip.domain.DestinationStop
 import com.federicopeyrani.trainapis.trip.domain.IntermediateStop
 import com.federicopeyrani.trainapis.trip.domain.OriginStop
@@ -23,6 +28,38 @@ import com.federicopeyrani.trainapis.model.StopStatus as StopStatusDto
 import com.federicopeyrani.trainapis.model.Timing as TimingDto
 import com.federicopeyrani.trainapis.model.Train as TrainDto
 import com.federicopeyrani.trainapis.model.Trip as TripDto
+import com.federicopeyrani.trainapis.model.TripSearch as TripSearchDto
+import com.federicopeyrani.trainapis.model.TripSearchSummary as TripSearchSummaryDto
+
+/**
+ * Collects a trip search into its JSON form.
+ */
+suspend fun Flow<TripSearchResult>.toDto(): TripSearchDto {
+    val trips = mutableListOf<TripDto>()
+    var unverified = 0
+    collect {
+        when (it) {
+            is TripSearchResult.Match -> trips += it.trip.toDto()
+            is TripSearchResult.Unverified -> unverified++
+        }
+    }
+    return TripSearchDto(unverifiedDepartures = unverified, trips = trips)
+}
+
+/**
+ * Streams a trip search: one unnamed event per trip, then a `summary` event once the search is complete.
+ */
+fun Flow<TripSearchResult>.toServerSentEvents(): Flow<ServerSentEvent<String>> = flow {
+    var unverified = 0
+    collect {
+        when (it) {
+            is TripSearchResult.Match -> emit(ServerSentEvent.builder(ApiJson.encodeToString(it.trip.toDto())).build())
+            is TripSearchResult.Unverified -> unverified++
+        }
+    }
+    val summary = TripSearchSummaryDto(unverifiedDepartures = unverified)
+    emit(ServerSentEvent.builder(ApiJson.encodeToString(summary)).event("summary").build())
+}
 
 fun Trip.toDto() = TripDto(
     from = from.toDto(),

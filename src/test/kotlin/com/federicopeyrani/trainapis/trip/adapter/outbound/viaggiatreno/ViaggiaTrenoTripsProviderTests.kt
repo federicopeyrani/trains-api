@@ -78,7 +78,7 @@ class ViaggiaTrenoTripsProviderTests {
     }
 
     @Test
-    fun `skips an entry whose train and destination are both unknown`() = runTest {
+    fun `keeps an entry whose train and destination are both unknown, without either`() = runTest {
         val upstream = Upstream(
             mapOf(
                 trainPath(2185) to HttpStatusCode.NoContent,
@@ -88,8 +88,9 @@ class ViaggiaTrenoTripsProviderTests {
 
         val departures = upstream.provider.getDepartures(StationId("S01700"), boardTime).toList()
 
-        assertEquals(7, departures.size)
-        assertTrue(departures.none { it.destination.name.equals("Cremona", ignoreCase = true) })
+        assertEquals(8, departures.size)
+        val unresolved = departures.single { it.destination == null }
+        assertEquals(null, unresolved.run, "callers can still tell the train exists, e.g. to report it as unverified")
     }
 
     @Test

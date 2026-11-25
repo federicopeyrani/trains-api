@@ -35,9 +35,13 @@ object TripFixtures {
         )
     }
 
-    fun departure(from: String, run: Run?) = Departure(
+    fun departure(
+        from: String,
+        run: Run?,
+        destination: Station? = run?.destination?.station ?: station("board-destination"),
+    ) = Departure(
         station = station(from),
-        destination = run?.destination?.station ?: station("board-destination"),
+        destination = destination,
         scheduledDeparture = at(8),
         scheduledArrival = null,
         lastUpdate = updatedAt,

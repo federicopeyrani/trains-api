@@ -96,13 +96,16 @@ paths:
             format: date-time
       responses:
         '200':
-          description: A list of trips between the specified stations
+          description: |
+            Trips between the specified stations. Departures whose run could not be checked are left out and only
+            counted in `unverifiedDepartures`: when it is not 0, some of them may also reach the destination.
+
+            As `text/event-stream`, every trip is sent as an unnamed event with a `Trip` as data, followed by one final
+            `summary` event whose data is a `TripSearchSummary`. A stream without the `summary` event is incomplete.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Trip'
+                $ref: '#/components/schemas/TripSearch'
             text/event-stream:
               schema:
                 type: array
@@ -144,13 +147,16 @@ paths:
             format: date-time
       responses:
         '200':
-          description: A list of trips between the specified stations
+          description: |
+            Trips between the specified stations. Departures whose run could not be checked are left out and only
+            counted in `unverifiedDepartures`: when it is not 0, some of them may also reach the destination.
+
+            As `text/event-stream`, every trip is sent as an unnamed event with a `Trip` as data, followed by one final
+            `summary` event whose data is a `TripSearchSummary`. A stream without the `summary` event is incomplete.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Trip'
+                $ref: '#/components/schemas/TripSearch'
             text/event-stream:
               schema:
                 type: array
@@ -269,6 +275,28 @@ components:
           $ref: '#/components/schemas/LastUpdated'
         run:
           $ref: '#/components/schemas/Run'
+    TripSearchSummary:
+      type: object
+      required:
+        - unverifiedDepartures
+      properties:
+        unverifiedDepartures:
+          description: |
+            Departures from the origin stations that might reach a destination but could not be checked (their run
+            could not be fetched). They are not part of the trips; when not 0, the result is incomplete.
+          type: integer
+          minimum: 0
+    TripSearch:
+      allOf:
+        - $ref: '#/components/schemas/TripSearchSummary'
+        - type: object
+          required:
+            - trips
+          properties:
+            trips:
+              type: array
+              items:
+                $ref: '#/components/schemas/Trip'
     Run:
       description: A specific run of a train on a given date. Only one run per train per date exists.
       type: object

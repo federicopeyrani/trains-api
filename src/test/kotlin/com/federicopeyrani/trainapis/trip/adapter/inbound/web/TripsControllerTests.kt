@@ -8,6 +8,8 @@ import com.federicopeyrani.trainapis.trip.application.port.inbound.GetAllTripsUs
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetDeparturesUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetRunUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetTripsUseCase
+import com.federicopeyrani.trainapis.trip.application.port.inbound.TripSearchResult
+import com.federicopeyrani.trainapis.trip.domain.Departure
 import com.federicopeyrani.trainapis.trip.domain.DestinationStop
 import com.federicopeyrani.trainapis.trip.domain.IntermediateStop
 import com.federicopeyrani.trainapis.trip.domain.OriginStop
@@ -20,6 +22,7 @@ import com.federicopeyrani.trainapis.trip.domain.Timing
 import com.federicopeyrani.trainapis.trip.domain.Train
 import com.federicopeyrani.trainapis.trip.domain.Trip
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -31,6 +34,7 @@ import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
 import org.springframework.context.annotation.Bean
 import org.springframework.http.MediaType
+import org.springframework.http.codec.ServerSentEvent
 import org.springframework.test.json.JsonAssert
 import org.springframework.test.json.JsonCompareMode
 import org.springframework.test.web.reactive.server.WebTestClient
@@ -95,6 +99,23 @@ class TripsControllerTests(
                 lastUpdate = at(21, 30),
             ),
         )
+
+        /**
+         * A trip search finding [trips] and one departure that could not be checked, reported between them.
+         */
+        private val search = flowOf(
+            TripSearchResult.Match(trips[0]),
+            TripSearchResult.Unverified(
+                Departure(
+                    station = centrale,
+                    destination = lingotto,
+                    scheduledDeparture = at(21, 40),
+                    scheduledArrival = null,
+                    lastUpdate = at(21, 30),
+                ),
+            ),
+            TripSearchResult.Match(trips[1]),
+        )
     }
 
     /**
@@ -117,13 +138,13 @@ class TripsControllerTests(
         @Bean
         fun getTrips(requests: Requests) = GetTripsUseCase { from, to, date ->
             requests += listOf(from, to, date)
-            emptyFlow()
+            search
         }
 
         @Bean
         fun getAllTrips(requests: Requests) = GetAllTripsUseCase { from, to, date ->
             requests += listOf(from, to, date)
-            emptyFlow()
+            search
         }
 
         @Bean
@@ -170,6 +191,37 @@ class TripsControllerTests(
 
         val json = "[${events.joinToString(",")}]"
         JsonAssert.comparator(JsonCompareMode.STRICT).assertIsMatch(expected("trips.json"), json)
+    }
+
+    @Test
+    fun `encodes a trip search as JSON with its unverified departures`() {
+        webTestClient.get().uri("/trips/S01700/S00452")
+            .accept(MediaType.APPLICATION_JSON)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+            .expectBody().json("""{"unverifiedDepartures": 1, "trips": ${expected("trips.json")}}""", JsonCompareMode.STRICT)
+    }
+
+    @ParameterizedTest
+    @CsvSource("/trips/S01700/S00452", "/trips/all?from=S01700&to=S00452")
+    fun `streams a trip search as trip events followed by a summary`(uri: String) {
+        val events = webTestClient.get().uri(uri)
+            .accept(MediaType.TEXT_EVENT_STREAM)
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM)
+            .returnResult<ServerSentEvent<String>>()
+            .responseBody
+            .collectList()
+            .block()!!
+
+        val (trips, summary) = events.dropLast(1) to events.last()
+        assertEquals(listOf(null, null), trips.map { it.event() }, "trips are unnamed events")
+        val json = "[${trips.joinToString(",") { it.data()!! }}]"
+        JsonAssert.comparator(JsonCompareMode.STRICT).assertIsMatch(expected("trips.json"), json)
+        assertEquals("summary", summary.event())
+        JsonAssert.comparator(JsonCompareMode.STRICT).assertIsMatch("""{"unverifiedDepartures": 1}""", summary.data())
     }
 
     @Test

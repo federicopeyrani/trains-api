@@ -2,6 +2,7 @@ package com.federicopeyrani.trainapis.trip.application
 
 import com.federicopeyrani.trainapis.trip.domain.TripFixtures.id
 import com.federicopeyrani.trainapis.shared.domain.StationId
+import com.federicopeyrani.trainapis.trip.application.port.inbound.TripSearchResult
 import com.federicopeyrani.trainapis.trip.application.port.outbound.TripsProvider
 import com.federicopeyrani.trainapis.trip.domain.Departure
 import com.federicopeyrani.trainapis.trip.domain.Run
@@ -38,33 +39,58 @@ class TripServiceRulesTests {
 
     private val northbound = run("A", "B", "C", trainNumber = 1)
     private val southbound = run("C", "B", "A", trainNumber = 2)
+    private val unknownRun = departure("B", run = null)
+    private val unknownRunAndDestination = departure("B", run = null, destination = null)
 
     private val provider = InMemoryTripsProvider(
         mapOf(
-            id("B") to listOf(departure("B", northbound), departure("B", southbound), departure("B", run = null)),
+            id("B") to listOf(
+                departure("B", northbound),
+                departure("B", southbound),
+                unknownRun,
+                unknownRunAndDestination,
+            ),
             id("A") to listOf(departure("A", northbound)),
         )
     )
 
     private val service = TripService(provider, Clock.System)
 
+    private fun List<TripSearchResult>.trips() = filterIsInstance<TripSearchResult.Match>().map { it.trip }
+    private fun List<TripSearchResult>.unverified() = filterIsInstance<TripSearchResult.Unverified>().map { it.departure }
+
     @Test
     fun `trips only include runs calling at the destination after the origin`() = runTest {
-        val trips = service.getTrips(id("B"), id("C"), date = null).toList()
+        val results = service.getTrips(id("B"), id("C"), date = null).toList()
 
-        assertEquals(listOf("1"), trips.map { it.run?.train?.number?.toString() })
-        assertEquals("C", trips.single().to.station.id.value)
+        assertEquals(listOf("1"), results.trips().map { it.run?.train?.number?.toString() })
+        assertEquals("C", results.trips().single().to.station.id.value)
     }
 
     @Test
-    fun `all trips fetch each origin board once`() = runTest {
-        val trips = service.getAllTrips(listOf("A", "B", "B").map(::id), listOf("A", "C").map(::id), date = null).toList()
+    fun `departures whose run is unknown are reported as unverified, not as trips`() = runTest {
+        val results = service.getTrips(id("B"), id("C"), date = null).toList()
+
+        assertEquals(listOf(unknownRun, unknownRunAndDestination), results.unverified())
+    }
+
+    @Test
+    fun `all trips fetch each origin board once and report each unverified departure once`() = runTest {
+        val results = service.getAllTrips(listOf("A", "B", "B").map(::id), listOf("A", "C").map(::id), date = null).toList()
 
         assertEquals(listOf("A", "B"), provider.boardRequests.map { it.value }.sorted())
         assertEquals(
             setOf("A" to "C", "B" to "C", "B" to "A"),
-            trips.map { it.from.station.id.value to it.to.station.id.value }.toSet(),
+            results.trips().map { it.from.station.id.value to it.to.station.id.value }.toSet(),
         )
+        assertEquals(listOf(unknownRun, unknownRunAndDestination), results.unverified(), "once each, although they may reach both destinations")
+    }
+
+    @Test
+    fun `departures leave out entries whose destination is unknown`() = runTest {
+        val departures = service.getDepartures(id("B"), date = null).toList()
+
+        assertEquals(listOf(northbound, southbound, null), departures.map { it.run }, "the last board entry is left out")
     }
 
     @Test

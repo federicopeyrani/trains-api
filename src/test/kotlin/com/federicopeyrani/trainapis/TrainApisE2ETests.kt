@@ -14,6 +14,7 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.convention.TestBean
 import org.springframework.test.json.JsonCompareMode
 import org.springframework.test.web.reactive.server.WebTestClient
+import org.springframework.test.web.reactive.server.expectBody
 import org.springframework.test.web.reactive.server.expectBodyList
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,6 +23,7 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import com.federicopeyrani.trainapis.model.StationDetails as StationDetailsDto
 import com.federicopeyrani.trainapis.model.Trip as TripDto
+import com.federicopeyrani.trainapis.model.TripSearch
 
 /**
  * End-to-end: the whole application over HTTP, with only the outbound HTTP engine (recorded ViaggiaTreno responses)
@@ -58,6 +60,9 @@ class TrainApisE2ETests(
                 "regione/S99999" to HttpStatusCode.NoContent,
                 // Unknown train
                 "andamentoTreno/S01700/1/1769122800000" to HttpStatusCode.NoContent,
+                // Outage while fetching a train of the S01700 board (the one to Lecco); its destination cannot be
+                // resolved by name either, as there is no `cercaStazione/LECCO` fixture
+                "andamentoTreno/S01700/24886/1769122800000" to HttpStatusCode.InternalServerError,
                 // Rate limited board
                 "partenze/S01645/Fri Jan 23 2026 22:20:00 GMT+0100" to HttpStatusCode.Forbidden,
                 // Rate limited station lookup, during a search
@@ -83,12 +88,20 @@ class TrainApisE2ETests(
         .returnResult()
         .responseBody!!
 
+    private fun searchTrips(uri: String) = webTestClient.get().uri(uri)
+        .accept(MediaType.APPLICATION_JSON)
+        .exchange()
+        .expectStatus().isOk
+        .expectBody<TripSearch>()
+        .returnResult()
+        .responseBody!!
+
     @Test
-    fun `departures default to now and carry each train's run`() {
+    fun `departures default to now, carry each train's run, and leave out trains going nowhere known`() {
         lateinit var departures: List<TripDto>
         val requests = upstreamRequestsDuring { departures = getTrips("/departures/S01700") }
 
-        assertEquals(8, departures.size)
+        assertEquals(7, departures.size, "the train to Lecco has neither run nor resolvable destination")
         assertTrue(departures.all { it.from.station.id == "S01700" && it.run != null })
         val toLingotto = departures.single { it.run?.train?.id == "7644" }
         assertEquals("Torino Lingotto", toLingotto.to.station.name)
@@ -99,10 +112,11 @@ class TrainApisE2ETests(
 
     @Test
     fun `trips only include trains calling at the destination`() {
-        val trips = getTrips("/trips/S01700/S00452?date=2026-01-23T21:20:00")
+        val search = searchTrips("/trips/S01700/S00452?date=2026-01-23T21:20:00")
 
-        assertTrue(trips.isNotEmpty())
-        trips.forEach { trip ->
+        assertEquals(1, search.unverifiedDepartures, "the train to Lecco could not be checked")
+        assertTrue(search.trips.isNotEmpty())
+        search.trips.forEach { trip ->
             assertEquals("S00452", trip.to.station.id)
             val calls = listOf(trip.run!!.origin.station.id) + trip.run.stops.map { it.station.id } +
                 trip.run.destination.station.id
@@ -112,12 +126,13 @@ class TrainApisE2ETests(
 
     @Test
     fun `all trips match every destination against each origin board once`() {
-        lateinit var trips: List<TripDto>
+        lateinit var search: TripSearch
         val requests = upstreamRequestsDuring {
-            trips = getTrips("/trips/all?from=S01700&from=S01700&to=S00452&to=S01915")
+            search = searchTrips("/trips/all?from=S01700&from=S01700&to=S00452&to=S01915")
         }
 
-        assertEquals(setOf("S00452", "S01915"), trips.map { it.to.station.id }.toSet())
+        assertEquals(setOf("S00452", "S01915"), search.trips.map { it.to.station.id }.toSet())
+        assertEquals(1, search.unverifiedDepartures, "the train to Lecco, counted once for both destinations")
         assertTrue(requests.count { it.startsWith("partenze/") } <= 1)
     }
 

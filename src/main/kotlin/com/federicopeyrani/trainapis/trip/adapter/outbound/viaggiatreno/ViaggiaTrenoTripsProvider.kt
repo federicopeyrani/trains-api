@@ -60,9 +60,7 @@ class ViaggiaTrenoTripsProvider(
         board
             .asFlow()
             .flatMapMerge(concurrency = properties.concurrency) { entry ->
-                flow {
-                    entry.toDepartureOrNull(station, boardLastUpdate)?.let { emit(it) }
-                }
+                flow { emit(entry.resolveDeparture(station, boardLastUpdate)) }
             }
             .collect(this::emit)
     }
@@ -79,9 +77,10 @@ class ViaggiaTrenoTripsProvider(
 
     /**
      * Best effort: a departure whose train cannot be fetched is returned without its run, and one whose destination
-     * cannot be resolved is skipped, so a single broken entry never fails the whole (already streaming) board.
+     * cannot be resolved either is returned without destination, so a single broken entry never fails the whole
+     * (already streaming) board, and callers can still tell that it exists.
      */
-    private suspend fun PartenzeArrivi.toDepartureOrNull(station: Station, boardLastUpdate: Instant): Departure? {
+    private suspend fun PartenzeArrivi.resolveDeparture(station: Station, boardLastUpdate: Instant): Departure {
         val run = orNull("run of train $numeroTreno") {
             trainsApiWrapper.getTrainOrNull(this)?.let { (train, trainLastUpdate) ->
                 train.toRun(dataPartenzaTreno, trainLastUpdate)
@@ -92,10 +91,6 @@ class ViaggiaTrenoTripsProvider(
             // `codDestinazione` can actually be null for some trips
             // `destinazione` seems to always be non-null though
             ?: orNull("destination '$destinazione' of train $numeroTreno") { getStationByNameOrNull(destinazione) }
-            ?: run {
-                log.warn("Skipping train $numeroTreno: destination '$destinazione' could not be resolved")
-                return null
-            }
 
         return toDeparture(station, destination, boardLastUpdate, run)
     }
