@@ -8,6 +8,8 @@ import com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno.ViaggiaT
 import com.federicopeyrani.trainapis.trip.domain.RunStatus
 import com.federicopeyrani.trainapis.trip.domain.StopStatus
 import kotlinx.serialization.json.Json
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -40,9 +42,25 @@ class ViaggiaTrenoTripMapperTests {
         assertEquals("S01700", run.origin.station.id.value)
         assertEquals("S01915", run.destination.station.id.value)
         assertEquals(9, run.stops.size)
-        assertEquals(RunStatus.ON_TIME, run.status)
+        assertEquals(RunStatus.DELAYED, run.status, "5 minutes late")
         assertEquals(StopStatus.DEPARTED, run.origin.status)
         assertEquals(StopStatus.NOT_YET_ARRIVED, run.destination.status)
+    }
+
+    @ParameterizedTest
+    @CsvSource(
+        "PG, 0,     , ON_TIME",
+        "PG, 0,    0, ON_TIME",
+        "PG, 0,   -3, ON_TIME",
+        "PG, 0,    1, DELAYED",
+        "ST, 1,     , CANCELLED",
+        "PG, 2,    0, ON_TIME",
+    )
+    fun `derives the run status from cancellation and delay`(type: String, measure: Int, delay: Int?, status: RunStatus) {
+        val run = train.copy(tipoTreno = AndamentoTreno.TipoTreno.valueOf(type), provvedimento = measure, ritardo = delay)
+            .toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations)
+
+        assertEquals(status, run.status)
     }
 
     @Test

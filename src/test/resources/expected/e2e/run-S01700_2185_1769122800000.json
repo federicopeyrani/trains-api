@@ -11,7 +11,7 @@
             "name": "Cremona"
         }
     },
-    "status": "ON_TIME",
+    "status": "DELAYED",
     "origin": {
         "station": {
             "id": "S01700",

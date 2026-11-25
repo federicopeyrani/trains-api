@@ -52,7 +52,7 @@ object ViaggiaTrenoTripMapper {
                 origin = first.station(),
                 destination = last.station(),
             ),
-            status = provvedimento?.asStatus() ?: RunStatus.ON_TIME,
+            status = status(),
             origin = OriginStop.of(
                 station = first.station(),
                 departureTime = timing(first.partenzaTeorica ?: orarioPartenza, first.partenzaReale, ritardo),
@@ -105,9 +105,15 @@ object ViaggiaTrenoTripMapper {
         actual = actual?.asInstant(),
     )
 
-    private fun Int.asStatus() = when (this) {
-        1 -> RunStatus.CANCELLED
-        2 -> RunStatus.DELAYED
+    /**
+     * A cancelled train is `tipoTreno` `ST` with `provvedimento` 1 (it still comes with its full stop list); otherwise
+     * the train is delayed whenever `ritardo` is positive, as the ViaggiaTreno site reports it. `ritardo` is null before
+     * departure and negative when running early. Other `provvedimento` codes (partial cancellation, diversion) have
+     * never been observed, so they do not change the status.
+     */
+    private fun AndamentoTreno.status() = when {
+        provvedimento == 1 || tipoTreno == AndamentoTreno.TipoTreno.ST -> RunStatus.CANCELLED
+        (ritardo ?: 0) > 0 -> RunStatus.DELAYED
         else -> RunStatus.ON_TIME
     }
 
