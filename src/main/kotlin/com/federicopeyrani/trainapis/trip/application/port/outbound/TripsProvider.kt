@@ -1,15 +1,17 @@
 package com.federicopeyrani.trainapis.trip.application.port.outbound
 
+import com.federicopeyrani.trainapis.trip.domain.Departure
 import com.federicopeyrani.trainapis.trip.domain.Run
-import com.federicopeyrani.trainapis.trip.domain.Trip
+import com.federicopeyrani.trainapis.trip.domain.RunId
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.Instant
 
 interface TripsProvider {
 
-    fun getDepartures(from: String, date: Instant): Flow<Trip>
+    /**
+     * Departure board of station [from] at [date], each entry enriched with its run when available.
+     */
+    fun getDepartures(from: String, date: Instant): Flow<Departure>
 
-    fun getTrips(from: String, to: String, date: Instant): Flow<Trip>
-
-    suspend fun getRun(runId: String): Run
+    suspend fun getRun(runId: RunId): Run
 }

@@ -30,7 +30,7 @@ fun Trip.toDto() = TripDto(
 )
 
 fun Run.toDto() = RunDto(
-    id = id,
+    id = id.toString(),
     train = train.toDto(),
     status = status.toDto(),
     origin = origin.toDto(),
