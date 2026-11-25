@@ -3,15 +3,15 @@ package com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno
 import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.shared.domain.Station
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.AndamentoTreno
-import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.PartenzeArrivi
 import com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno.ViaggiaTrenoTripMapper.stationIds
-import com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno.ViaggiaTrenoTripMapper.toDeparture
 import com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno.ViaggiaTrenoTripMapper.toRun
 import com.federicopeyrani.trainapis.trip.domain.RunStatus
 import com.federicopeyrani.trainapis.trip.domain.StopStatus
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 /**
@@ -27,12 +27,6 @@ class ViaggiaTrenoTripMapperTests {
     private val train = json.decodeFromString<AndamentoTreno>(
         javaClass
             .getResource("/providers/viaggiatreno/GET_infomobilita_resteasy_viaggiatreno_andamentoTreno_S01700_2185_1769122800000.json")!!
-            .readText()
-    )
-
-    private val board = json.decodeFromString<List<PartenzeArrivi>>(
-        javaClass
-            .getResource("/providers/viaggiatreno/GET_infomobilita_resteasy_viaggiatreno_partenze_S01700_Fri-Jan-23-2026-22-20-00-GMT-0100.json")!!
             .readText()
     )
 
@@ -59,28 +53,31 @@ class ViaggiaTrenoTripMapperTests {
     }
 
     /**
-     * ViaggiaTreno gives some times only as `HH:mm` in Europe/Rome; after midnight they belong to the next day, not to
-     * the day the train left its origin.
+     * The train left at 22:20 Rome (21:20 UTC) and runs 5 minutes late (`ritardo`): events that happened have their
+     * actual time, and those still to come are forecast as scheduled + 5 minutes, at every stop alike.
      */
     @Test
-    fun `times after midnight belong to the following day`() {
-        // Left its origin on Jan 23, arrives on Jan 24 at 00:35 Rome (23:35 UTC) and is expected 5 minutes late
-        val overnight = train.copy(
-            orarioArrivo = Instant.parse("2026-01-23T23:35:00Z").toEpochMilliseconds(),
-            compOrarioArrivoZeroEffettivo = "00:40",
-        )
-        val run = overnight.toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations)
+    fun `forecasts events still to come with the train's delay`() {
+        val run = train.toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations)
 
-        assertEquals(Instant.parse("2026-01-23T23:40:00Z"), run.destination.arrivalTime?.expected)
+        val departure = run.origin.departureTime!!
+        assertEquals(Instant.parse("2026-01-23T21:20:00Z"), departure.scheduled)
+        assertNull(departure.expected, "already departed")
 
-        // Board entry of the same day's run, leaving this station on Jan 24 at 00:10 Rome (23:10 UTC)
-        val entry = board.first().copy(
-            dataPartenzaTreno = 1769122800000,
-            orarioPartenza = Instant.parse("2026-01-23T23:10:00Z").toEpochMilliseconds(),
-            compOrarioPartenza = "00:10",
-        )
-        val departure = entry.toDeparture(Station(StationId("S01700"), "Milano Centrale"), run.destination.station, Instant.fromEpochSeconds(0), run = null)
+        val next = run.stops.first().arrivalTime!!
+        assertNull(next.actual)
+        assertEquals(next.scheduled + 5.minutes, next.expected)
 
-        assertEquals(Instant.parse("2026-01-23T23:10:00Z"), departure.scheduledDeparture)
+        val arrival = run.destination.arrivalTime!!
+        assertEquals(Instant.parse("2026-01-23T22:35:00Z"), arrival.scheduled)
+        assertEquals(Instant.parse("2026-01-23T22:40:00Z"), arrival.expected)
+    }
+
+    @Test
+    fun `forecasts nothing before the train has a delay`() {
+        val run = train.copy(ritardo = null)
+            .toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations)
+
+        assertNull(run.destination.arrivalTime?.expected)
     }
 }

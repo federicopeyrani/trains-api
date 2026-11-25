@@ -20,7 +20,6 @@
         "status": "DEPARTED",
         "departureTime": {
             "scheduled": "2026-01-23T21:20",
-            "expected": "2026-01-23T21:20",
             "actual": "2026-01-23T21:25"
         }
     },
