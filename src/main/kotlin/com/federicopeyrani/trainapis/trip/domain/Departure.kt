@@ -33,7 +33,7 @@ data class Departure(
      * board's scheduled times are available.
      */
     fun toTrip(to: StationId? = null): Trip {
-        val fromIndex = run?.indexOf(station.id)?.takeIf { it >= 0 }
+        val fromIndex = run?.indexOf(station.id)?.takeIf { run.departsAt(it) }
         val toIndex = if (to == null) null else run?.indexOf(to)?.takeIf { it >= 0 }
 
         return Trip(

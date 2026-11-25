@@ -40,20 +40,24 @@ data class Run(
     }
 
     /**
+     * Whether a journey can start at the call at [index]: any call but the destination.
+     */
+    fun departsAt(index: Int) = index in 0..<destinationIndex
+
+    /**
      * The call at [index] seen as the start of a journey.
      */
-    fun departureAt(index: Int): OriginStop = when (index) {
-        0 -> origin
-        destinationIndex -> OriginStop(destination.station, destination.status)
-        else -> stops[index - 1].let { OriginStop(it.station, it.status, it.departureTime) }
+    fun departureAt(index: Int): OriginStop {
+        require(departsAt(index)) { "Run $id does not depart from call $index" }
+        return if (index == 0) origin else stops[index - 1].let { OriginStop(it.station, it.status, it.departureTime) }
     }
 
     /**
-     * The call at [index] seen as the end of a journey.
+     * The call at [index] seen as the end of a journey: any call but the origin.
      */
-    fun arrivalAt(index: Int): DestinationStop = when (index) {
-        0 -> DestinationStop(origin.station, origin.status)
-        destinationIndex -> destination
-        else -> stops[index - 1].let { DestinationStop(it.station, it.status, it.arrivalTime) }
+    fun arrivalAt(index: Int): DestinationStop {
+        require(index in 1..destinationIndex) { "Run $id does not arrive at call $index" }
+        return if (index == destinationIndex) destination
+        else stops[index - 1].let { DestinationStop(it.station, it.status, it.arrivalTime) }
     }
 }

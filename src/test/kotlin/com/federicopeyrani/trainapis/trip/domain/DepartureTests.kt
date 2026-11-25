@@ -54,6 +54,14 @@ class DepartureTests {
     }
 
     @Test
+    fun `departure from a run's last call falls back to the board`() {
+        val trip = departure("D", run).toTrip()
+
+        assertEquals(Instant.parse("2026-01-23T08:00:00Z"), trip.from.departureTime?.scheduled, "board time")
+        assertNull(trip.from.status, "a run never departs from its destination")
+    }
+
+    @Test
     fun `run id round-trips and rejects malformed values`() {
         assertEquals(run.id, RunId.parse(run.id.toString()))
         listOf("", "A_1", "A_x_1", "A_1_x", "_1_2", "A_1_2_3").forEach {
