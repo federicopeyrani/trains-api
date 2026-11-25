@@ -27,21 +27,8 @@ How to investigate what is still open:
 | 5 | Resolving a destination by name | `codDestinazione` was null on 200 of 200 board entries. `destinazione` is the exact `nomeLungo` of the last stop (19 of 19), and `cercaStazione` matches by prefix. | Exact name match only (`0374cfb`). |
 | 6 | Time window of a board | About [t − 15 min, t + 105 min], sorted by time. Boards are **live data**: past slots are empty, far-future ones nearly empty. Runs exist **only for today** (other days answer 204). | Documented on the `date` parameter (`e82a151`). |
 | 9 | `ultimoRilev`, `dataPartenzaTreno` | `ultimoRilev` equals `oraUltimoRilevamento`: the last position detection, null before departure. `dataPartenzaTreno` is local midnight in Rome, and any millis within that day work. | `lastUpdateFromProvider` documented. |
+| 7 | A local station registry | No single list is complete (`elencoStazioni/0` misses most stations, and region 0 details lack names off the national map), but **regions 0..22 together** covered all 272 station codes seen. That is 3,362 stations with names, about 1.8 MB in 23 calls. 48 stations have no coordinates, and the 102 listed in several regions carry identical data. | `ViaggiaTrenoStationRegistry`, loaded once a day, with direct lookups as fallback. |
 | – | `orarioPartenza` on boards | It is the departure from the board's own station: equal to that stop's `partenza_teorica` (18 of 18). | Already relied on; no change. |
-
-## Closed without change
-
-### 7. A local station registry
-
-Not viable with the available endpoints:
-- `elencoStazioni/0` has 723 entries for only 609 distinct codes, 135 of them without coordinates. Of 302 station codes
-  seen on boards and in runs, **213 are missing** from it (e.g. Firenze Campo Marte, Fiumicino Aeroporto).
-- Skipping the region lookup does not work either: `dettaglioStazione/{id}/0` returns `localita: null` for stations
-  off the national map (e.g. Genova Brignole, Aosta), and only the right region fills it. For an unknown id it returns
-  the "Y" placeholder.
-
-The per-request `regione` + `dettaglioStazione` lookups, cached for 60 minutes, stay. Revisit if the per-region lists
-(`elencoStazioni/{1..22}`) turn out to cover every station together; that has not been checked.
 
 ---
 

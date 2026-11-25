@@ -36,7 +36,8 @@ class ViaggiaTrenoContractTests {
     private val cache = Cache(Clock.System)
     private val stationsApi = ViaggiaTrenoClients.stationsApi()
     private val trainsApi = ViaggiaTrenoClients.trainsApi()
-    private val stations = ViaggiaTrenoStationsApiWrapper(stationsApi, cache)
+    // No station lists here (they are 23 calls): the direct lookups are what these tests check
+    private val stations = ViaggiaTrenoStationsApiWrapper(stationsApi, ViaggiaTrenoStationRegistry(stationsApi, cache, emptyList()), cache)
     private val trains = ViaggiaTrenoTrainsApiWrapper(trainsApi, cache)
 
     private suspend fun <T> upstream(block: suspend () -> T): T =
@@ -60,11 +61,21 @@ class ViaggiaTrenoContractTests {
 
     @Test
     fun `station details carry the name and coordinates`() = runTest(timeout = 60.seconds) {
-        val details = assertNotNull(upstream { stations.getStationDetails("S01700").data })
+        val details = assertNotNull(upstream { stations.getStationDetails("S01700") })
 
         assertEquals("S01700", details.codStazione)
         assertEquals("MILANO CENTRALE", details.localita?.nomeLungo)
         assertTrue(abs(details.lat!! - 45.486) < 0.05 && abs(details.lon!! - 9.204) < 0.05, "${details.lat}, ${details.lon}")
+    }
+
+    @Test
+    fun `a region's station list carries names and coordinates`() = runTest(timeout = 60.seconds) {
+        // One list (Lombardia) of the 23 the registry loads
+        val lombardia = ViaggiaTrenoStationRegistry(stationsApi, cache, regions = listOf(1))
+
+        val centrale = assertNotNull(upstream { lombardia.find("S01700") }, "Milano Centrale is listed in Lombardia")
+        assertEquals("MILANO CENTRALE", centrale.localita?.nomeLungo)
+        assertTrue(abs(centrale.lat!! - 45.486) < 0.05 && abs(centrale.lon!! - 9.204) < 0.05, "${centrale.lat}, ${centrale.lon}")
     }
 
     @Test
@@ -73,7 +84,7 @@ class ViaggiaTrenoContractTests {
         assumeNotRateLimited(region.status)
         assertEquals(204, region.status, "region of an unknown station")
         // `/departures/{from}` answers 404 only if the details of an unknown station are absent
-        assertNull(upstream { stations.getStationDetails("S99999").data }, "details of an unknown station")
+        assertNull(upstream { stations.getStationDetails("S99999") }, "details of an unknown station")
 
         val today = Clock.System.now().toLocalDateTime(rome).date.atStartOfDayIn(rome).toEpochMilliseconds()
         val train = trainsApi.andamentoTreno("S01700", 1, today)

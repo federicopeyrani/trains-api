@@ -6,6 +6,7 @@ import com.federicopeyrani.trainapis.mockEngine
 import com.federicopeyrani.trainapis.shared.infrastructure.cache.Cache
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoClients
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoProperties
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationRegistry
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationsApiWrapper
 import com.federicopeyrani.trainapis.station.domain.GeoLocation
 import com.federicopeyrani.trainapis.station.domain.StationDetails
@@ -22,13 +23,19 @@ import kotlin.time.Clock
  */
 class ViaggiaTrenoStationsProviderTests {
 
-    private fun provider(statuses: Map<String, HttpStatusCode> = emptyMap()) = ViaggiaTrenoStationsProvider(
-        viaggiaTrenoStationsApiWrapper = ViaggiaTrenoStationsApiWrapper(
-            stationsApi = ViaggiaTrenoClients.stationsApi(mockEngine(statuses = statuses)),
-            cache = Cache(Clock.System),
-        ),
-        properties = ViaggiaTrenoProperties(),
-    )
+    private fun provider(statuses: Map<String, HttpStatusCode> = emptyMap()): ViaggiaTrenoStationsProvider {
+        val stationsApi = ViaggiaTrenoClients.stationsApi(mockEngine(statuses = statuses))
+        val cache = Cache(Clock.System)
+        return ViaggiaTrenoStationsProvider(
+            viaggiaTrenoStationsApiWrapper = ViaggiaTrenoStationsApiWrapper(
+                stationsApi = stationsApi,
+                // No station lists: every station is looked up directly, the path these tests exercise
+                registry = ViaggiaTrenoStationRegistry(stationsApi, cache, regions = emptyList()),
+                cache = cache,
+            ),
+            properties = ViaggiaTrenoProperties(),
+        )
+    }
 
     @Test
     fun `enriches search results with details and skips stations whose details cannot be fetched`() = runTest {

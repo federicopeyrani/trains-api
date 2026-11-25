@@ -1,5 +1,7 @@
 package com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno
 
+import com.federicopeyrani.trainapis.shared.infrastructure.cache.Cache
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.api.StationsApi
 import io.ktor.client.engine.HttpClientEngine
 import org.springframework.beans.factory.ObjectProvider
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -20,4 +22,7 @@ class ViaggiaTrenoConfig {
 
     @Bean
     fun stationsApi(engine: ObjectProvider<HttpClientEngine>) = ViaggiaTrenoClients.stationsApi(engine.ifAvailable)
+
+    @Bean
+    fun stationRegistry(stationsApi: StationsApi, cache: Cache) = ViaggiaTrenoStationRegistry(stationsApi, cache)
 }

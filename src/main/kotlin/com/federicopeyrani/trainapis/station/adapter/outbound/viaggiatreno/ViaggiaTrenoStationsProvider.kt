@@ -34,7 +34,7 @@ class ViaggiaTrenoStationsProvider(
                     // Best effort: a station whose details cannot be fetched is skipped rather than failing the
                     // whole (already streaming) result
                     val details = try {
-                        viaggiaTrenoStationsApiWrapper.getStationDetails(it.id).data
+                        viaggiaTrenoStationsApiWrapper.getStationDetails(it.id)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {

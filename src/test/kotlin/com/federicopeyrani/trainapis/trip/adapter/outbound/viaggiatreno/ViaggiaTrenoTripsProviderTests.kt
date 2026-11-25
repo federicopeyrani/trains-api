@@ -9,6 +9,7 @@ import com.federicopeyrani.trainapis.shared.domain.StationNotFoundException
 import com.federicopeyrani.trainapis.shared.infrastructure.cache.Cache
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoClients
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoProperties
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationRegistry
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationsApiWrapper
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoTrainsApiWrapper
 import com.federicopeyrani.trainapis.trip.domain.RunId
@@ -41,7 +42,10 @@ class ViaggiaTrenoTripsProviderTests {
 
         val provider = ViaggiaTrenoTripsProvider(
             trainsApiWrapper = ViaggiaTrenoTrainsApiWrapper(ViaggiaTrenoClients.trainsApi(engine), cache),
-            stationApiWrapper = ViaggiaTrenoStationsApiWrapper(ViaggiaTrenoClients.stationsApi(engine), cache),
+            // No station lists: every station is looked up directly, the path these tests exercise
+            stationApiWrapper = ViaggiaTrenoClients.stationsApi(engine).let {
+                ViaggiaTrenoStationsApiWrapper(it, ViaggiaTrenoStationRegistry(it, cache, regions = emptyList()), cache)
+            },
             properties = ViaggiaTrenoProperties(),
         )
 

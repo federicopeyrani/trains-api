@@ -134,7 +134,7 @@ class ViaggiaTrenoTripsProvider(
     }
 
     private suspend fun getStationByIdOrNull(stationId: StationId): Station? {
-        val result = stationApiWrapper.getStationDetails(stationId.value).data ?: return null
+        val result = stationApiWrapper.getStationDetails(stationId.value) ?: return null
 
         return Station(
             id = stationId,

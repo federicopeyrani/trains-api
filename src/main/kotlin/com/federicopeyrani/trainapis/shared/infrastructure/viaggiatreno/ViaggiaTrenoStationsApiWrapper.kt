@@ -12,6 +12,7 @@ import kotlin.time.Duration.Companion.seconds
 @Component
 class ViaggiaTrenoStationsApiWrapper(
     private val stationsApi: StationsApi,
+    private val registry: ViaggiaTrenoStationRegistry,
     private val cache: Cache,
 ) {
 
@@ -36,14 +37,18 @@ class ViaggiaTrenoStationsApiWrapper(
     }
 
     /**
-     * Station details, or `null` when ViaggiaTreno has none for [stationId].
+     * Station details, or `null` when ViaggiaTreno has none for [stationId]. Taken from the [registry] when it lists the
+     * station, otherwise looked up directly (region, then details).
      *
      * ViaggiaTreno does not answer unknown stations with `204 No Content`: their region lookup is empty (region `0`) and
      * the details are a placeholder whose names are all `Y`, which is treated as no details.
      *
      * @throws ProviderUnavailableException if ViaggiaTreno cannot be reached or rejects the request
      */
-    suspend fun getStationDetails(stationId: String) = cache.getOrPut(
+    suspend fun getStationDetails(stationId: String): StazioneDettagliata? =
+        registry.find(stationId) ?: lookUpStationDetails(stationId)
+
+    private suspend fun lookUpStationDetails(stationId: String) = cache.getOrPut(
         key = Cache.Key.of("station-details-$stationId"),
         ttl = { if (it?.localita == null) 10.seconds else 60.minutes }
     ) {
@@ -58,7 +63,7 @@ class ViaggiaTrenoStationsApiWrapper(
                 else -> response.bodyOrThrow("station details").takeUnless { regionCode == 0 && it.isPlaceholder() }
             }
         }
-    }
+    }.data
 
     private fun StazioneDettagliata.isPlaceholder() = localita?.nomeLungo == "Y" && localita.nomeBreve == "Y"
 
