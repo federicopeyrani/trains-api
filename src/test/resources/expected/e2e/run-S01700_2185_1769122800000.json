@@ -1,0 +1,177 @@
+{
+    "id": "S01700_2185_1769122800000",
+    "train": {
+        "id": "2185",
+        "origin": {
+            "id": "S01700",
+            "name": "Milano Centrale"
+        },
+        "destination": {
+            "id": "S01915",
+            "name": "Cremona"
+        }
+    },
+    "status": "ON_TIME",
+    "origin": {
+        "station": {
+            "id": "S01700",
+            "name": "Milano Centrale"
+        },
+        "status": "DEPARTED",
+        "departureTime": {
+            "scheduled": "2026-01-23T21:20",
+            "expected": "2026-01-23T21:20",
+            "actual": "2026-01-23T21:25"
+        }
+    },
+    "destination": {
+        "station": {
+            "id": "S01915",
+            "name": "Cremona"
+        },
+        "status": "NOT_YET_ARRIVED",
+        "arrivalTime": {
+            "scheduled": "2026-01-23T22:35",
+            "expected": "2026-01-23T22:40"
+        }
+    },
+    "stops": [
+        {
+            "station": {
+                "id": "S01701",
+                "name": "Milano Lambrate"
+            },
+            "status": "NOT_YET_ARRIVED",
+            "arrivalTime": {
+                "scheduled": "2026-01-23T21:26",
+                "expected": "2026-01-23T21:31"
+            },
+            "departureTime": {
+                "scheduled": "2026-01-23T21:27",
+                "expected": "2026-01-23T21:32"
+            }
+        },
+        {
+            "station": {
+                "id": "S01820",
+                "name": "Milano Rogoredo"
+            },
+            "status": "NOT_YET_ARRIVED",
+            "arrivalTime": {
+                "scheduled": "2026-01-23T21:32",
+                "expected": "2026-01-23T21:37"
+            },
+            "departureTime": {
+                "scheduled": "2026-01-23T21:33",
+                "expected": "2026-01-23T21:38"
+            }
+        },
+        {
+            "station": {
+                "id": "S01825",
+                "name": "Lodi"
+            },
+            "status": "NOT_YET_ARRIVED",
+            "arrivalTime": {
+                "scheduled": "2026-01-23T21:46",
+                "expected": "2026-01-23T21:51"
+            },
+            "departureTime": {
+                "scheduled": "2026-01-23T21:47",
+                "expected": "2026-01-23T21:52"
+            }
+        },
+        {
+            "station": {
+                "id": "S01826",
+                "name": "Secugnago"
+            },
+            "status": "NOT_YET_ARRIVED",
+            "arrivalTime": {
+                "scheduled": "2026-01-23T21:54",
+                "expected": "2026-01-23T21:59"
+            },
+            "departureTime": {
+                "scheduled": "2026-01-23T21:55",
+                "expected": "2026-01-23T22:00"
+            }
+        },
+        {
+            "station": {
+                "id": "S01827",
+                "name": "Casalpusterlengo"
+            },
+            "status": "NOT_YET_ARRIVED",
+            "arrivalTime": {
+                "scheduled": "2026-01-23T22:00",
+                "expected": "2026-01-23T22:05"
+            },
+            "departureTime": {
+                "scheduled": "2026-01-23T22:01",
+                "expected": "2026-01-23T22:06"
+            }
+        },
+        {
+            "station": {
+                "id": "S01828",
+                "name": "Codogno"
+            },
+            "status": "NOT_YET_ARRIVED",
+            "arrivalTime": {
+                "scheduled": "2026-01-23T22:06",
+                "expected": "2026-01-23T22:11"
+            },
+            "departureTime": {
+                "scheduled": "2026-01-23T22:07",
+                "expected": "2026-01-23T22:12"
+            }
+        },
+        {
+            "station": {
+                "id": "S01910",
+                "name": "Maleo"
+            },
+            "status": "NOT_YET_ARRIVED",
+            "arrivalTime": {
+                "scheduled": "2026-01-23T22:13",
+                "expected": "2026-01-23T22:18"
+            },
+            "departureTime": {
+                "scheduled": "2026-01-23T22:14",
+                "expected": "2026-01-23T22:19"
+            }
+        },
+        {
+            "station": {
+                "id": "S01911",
+                "name": "Pizzighettone"
+            },
+            "status": "NOT_YET_ARRIVED",
+            "arrivalTime": {
+                "scheduled": "2026-01-23T22:17",
+                "expected": "2026-01-23T22:22"
+            },
+            "departureTime": {
+                "scheduled": "2026-01-23T22:18",
+                "expected": "2026-01-23T22:23"
+            }
+        },
+        {
+            "station": {
+                "id": "S01912",
+                "name": "Ponte D'Adda"
+            },
+            "status": "NOT_YET_ARRIVED",
+            "arrivalTime": {
+                "scheduled": "2026-01-23T22:20",
+                "expected": "2026-01-23T22:25"
+            },
+            "departureTime": {
+                "scheduled": "2026-01-23T22:21",
+                "expected": "2026-01-23T22:26"
+            }
+        }
+    ],
+    "lastUpdate": "2026-01-23T21:20",
+    "lastUpdateFromProvider": "2026-01-23T21:25"
+}

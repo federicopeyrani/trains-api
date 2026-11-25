@@ -11,11 +11,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Run the application
 ./gradlew bootRun
 
-# Run all tests
+# Run all tests (unit, web, E2E; no network)
 ./gradlew test
 
 # Run a single test class
-./gradlew test --tests "com.federicopeyrani.trainapis.trip.application.TripServiceTests"
+./gradlew test --tests "com.federicopeyrani.trainapis.TrainApisE2ETests"
+
+# Check the contract of the real ViaggiaTreno API (network; skipped when rate limited)
+./gradlew providerContractTest
 
 # Regenerate API code from OpenAPI specs only
 ./gradlew openApiGenerate openApiGenerateViaggiatreno
@@ -85,14 +88,18 @@ When adding a feature, add its name to `features` in `ArchitectureTest`.
 - **Custom caching**: `Cache` in `shared.infrastructure.cache` is a plain-Kotlin, coroutine-aware TTL cache: concurrent callers for a key share one computation (single flight), failures are not cached, and the size is bounded. The API wrappers use it to cache upstream responses. Departure boards are cached per minute.
 - **Clock**: "now" comes from the injected `kotlin.time.Clock` bean (`ClockConfig`). Never call `Clock.System` directly, so tests can use a fixed or hand-advanced clock.
 - **Errors**: domain code throws subclasses of `shared.domain.DomainException`; `ApiExceptionHandler` maps them to 400/404/503 `ProblemDetail` responses. The ViaggiaTreno wrappers translate non-2xx statuses (the generated client does not throw on them) and transport errors into `ProviderUnavailableException`. Status codes can only change before a stream starts, so adapters skip broken entries rather than failing mid-stream.
-- **Serialization**: Uses `kotlinx.serialization` (not Jackson) for the ViaggiaTreno client models and public API DTOs. Public DTOs are annotated with `@kotlinx.serialization.Serializable` via OpenAPI generator config.
-- **Time handling**: All times from ViaggiaTreno (Europe/Rome timezone, epoch millis) are converted to UTC `kotlinx.datetime.LocalDateTime` before returning to clients. The `date` query parameter is also interpreted as UTC.
+- **Serialization**: Uses `kotlinx.serialization` (not Jackson) for the ViaggiaTreno client models and public API DTOs. Public DTOs are annotated with `@kotlinx.serialization.Serializable` via OpenAPI generator config. WebFlux would encode server-sent events with Jackson, so `WebCodecsConfig` sets the kotlinx encoder for them too.
+- **Time handling**: All times from ViaggiaTreno (Europe/Rome timezone, epoch millis) are converted to UTC `kotlinx.datetime.LocalDateTime` before returning to clients. The `date` query parameter is also interpreted as UTC, with or without seconds. Provider `HH:mm` times are placed on the day closest to the matching epoch field, so times after midnight land on the next day.
 
 ### Test Setup
 
-Tests use **fakes, not mocks** (enforced by `ArchitectureTest`):
-- **Use cases** are `fun interface`s, so web tests (`@WebFluxTest`) register lambdas in a `@TestConfiguration`.
-- **Outbound ports** are small interfaces, so application tests use in-memory implementations (see `TripServiceRulesTests`, with domain builders in `TripFixtures`).
-- **ViaggiaTreno**: `mockEngine(...)` (`src/test/kotlin/.../MockEngine.kt`, a Ktor `MockEngine` fake) serves recorded JSON from `src/test/resources/providers/viaggiatreno/`. Adapters and wrappers are built with plain constructors (`ViaggiaTrenoClients.trainsApi(engine)`, ...), so no Spring context is needed. A missing fixture fails the request immediately; record it with `curl` and commit it.
-- **Mapping** is pure: `ViaggiaTrenoTripMapperTests` decodes a fixture and maps it directly.
-- **Time**: implement `kotlin.time.Clock` with a mutable `now` (see `CacheTests`).
+Tests use **fakes, not mocks** (enforced by `ArchitectureTest`). The suites, from narrowest to widest:
+- **Domain/application rules**: plain tests on domain objects (`DepartureTests`, builders in `TripFixtures`) and on services with in-memory outbound ports (`TripServiceRulesTests`).
+- **Web contract** (`TripsControllerTests`, `StationsControllerTests`): `@WebFluxTest` with the use cases (`fun interface`s) replaced by lambdas in a `@TestConfiguration`. They pin the JSON payloads strictly (`src/test/resources/expected/`), including absent optional fields and server-sent events, request binding (UTC dates, repeated params) and problem responses, so codec or binder configuration changes cannot slip through.
+- **Adapters** (`ViaggiaTrenoTripsProviderTests`, `ViaggiaTrenoStationsProviderTests`, `ViaggiaTrenoTripMapperTests`): plain constructors over the fake HTTP engine, covering degradation rules, error translation and upstream traffic.
+- **E2E** (`TrainApisE2ETests`): `@SpringBootTest(RANDOM_PORT)` over real HTTP with only the `HttpClientEngine` (a `@TestConfiguration` bean) and the `Clock` (`@TestBean`) replaced.
+- **Provider contract** (`ViaggiaTrenoContractTests`, annotated `@ProviderContractTest`): call the real ViaggiaTreno API to check what the adapters rely on (decoding, `204`/placeholder semantics, time fields). Tagged `provider-contract`, excluded from `test`/`build` and run by `providerContractTest`; a 403 aborts (skips) them. Keep them to a handful of calls.
+
+The fake ViaggiaTreno is `mockEngine(...)` (`src/test/kotlin/.../MockEngine.kt`, a Ktor `MockEngine`): it serves recorded JSON from `src/test/resources/providers/viaggiatreno/`, answers the paths in `statuses` (e.g. `"andamentoTreno/S01700/1/1769122800000" to NoContent`) with a bare status to simulate 204s, rate limits and outages, and keeps every request in `requestHistory`. A missing fixture fails the request immediately; record it with `curl` and commit it. Upstream behaviour faked here should be confirmed by a provider contract test.
+
+- **Time**: implement `kotlin.time.Clock` with a fixed or mutable `now` (see `CacheTests`, `TrainApisE2ETests`).

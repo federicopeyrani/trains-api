@@ -15,10 +15,13 @@ import com.federicopeyrani.trainapis.trip.domain.RunId
 import com.federicopeyrani.trainapis.trip.domain.RunStatus
 import com.federicopeyrani.trainapis.trip.domain.Timing
 import com.federicopeyrani.trainapis.trip.domain.Train
-import kotlinx.datetime.LocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atDate
+import kotlinx.datetime.atTime
+import kotlinx.datetime.plus
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -54,7 +57,6 @@ object ViaggiaTrenoTripMapper {
         val calls = fermate?.takeIf { it.isNotEmpty() } ?: error("Train $numeroTreno has no stops")
         val first = calls.first()
         val last = calls.last()
-        val tripDate = departureDate.asProviderDateTime().date
 
         fun Fermata.station() = stations[id] ?: Station(id = id, name = stazione.toStationDisplayName())
 
@@ -79,7 +81,7 @@ object ViaggiaTrenoTripMapper {
                 arrivalTime = Timing(
                     scheduled = orarioArrivo.asUTCDateTime(),
                     expected = compOrarioArrivoZeroEffettivo
-                        ?.parseAsTimeAt(tripDate)
+                        ?.parseAsTimeNear(orarioArrivo)
                         ?.convertTimeZone(providerTimeZone, TimeZone.UTC),
                     actual = last.arrivoReale?.asUTCDateTime(),
                 ),
@@ -102,9 +104,9 @@ object ViaggiaTrenoTripMapper {
     ) = Departure(
         station = station,
         destination = destination,
-        scheduledDeparture = compOrarioPartenza
-            .parseAsTimeAt(dataPartenzaTreno.asProviderDateTime().date)
-            .convertTimeZone(providerTimeZone, TimeZone.UTC),
+        // `orarioPartenza` is the departure from this station as an instant, so unlike `compOrarioPartenza` ("HH:mm")
+        // it needs no date, which would be wrong for trains reaching this station after midnight
+        scheduledDeparture = orarioPartenza.asUTCDateTime(),
         scheduledArrival = run?.destination?.arrivalTime?.scheduled ?: orarioArrivo?.asUTCDateTime(),
         lastUpdate = boardLastUpdate.toLocalDateTime(TimeZone.UTC),
         lastUpdateFromProvider = ultimoRilev?.asUTCDateTime(),
@@ -139,7 +141,17 @@ object ViaggiaTrenoTripMapper {
         .fromEpochMilliseconds(this)
         .toLocalDateTime(providerTimeZone)
 
-    private fun String.parseAsTimeAt(date: LocalDate) = timeFormatter
-        .parse(this)
-        .atDate(date)
+    /**
+     * Parses an `HH:mm` provider time as the occurrence closest to [reference] (epoch millis), so that times past
+     * midnight land on the right day.
+     */
+    private fun String.parseAsTimeNear(reference: Long): LocalDateTime {
+        val time = timeFormatter.parse(this)
+        val referenceDateTime = reference.asProviderDateTime()
+        val referenceInstant = referenceDateTime.toInstant(providerTimeZone)
+
+        return listOf(-1, 0, 1)
+            .map { referenceDateTime.date.plus(it, DateTimeUnit.DAY).atTime(time) }
+            .minBy { (it.toInstant(providerTimeZone) - referenceInstant).absoluteValue }
+    }
 }

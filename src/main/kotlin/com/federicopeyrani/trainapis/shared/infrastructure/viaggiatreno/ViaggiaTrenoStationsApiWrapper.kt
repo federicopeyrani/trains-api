@@ -3,6 +3,7 @@ package com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno
 import com.federicopeyrani.trainapis.shared.domain.ProviderUnavailableException
 import com.federicopeyrani.trainapis.shared.infrastructure.cache.Cache
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.api.StationsApi
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.StazioneDettagliata
 import com.federicopeyrani.trainapis.shared.util.log
 import org.springframework.stereotype.Component
 import kotlin.time.Duration.Companion.minutes
@@ -25,12 +26,20 @@ class ViaggiaTrenoStationsApiWrapper(
     ) {
         log.info("Searching stations from ViaggiaTreno for query '$query'")
         viaggiaTrenoCall("station search") {
-            stationsApi.cercaStazione(query).bodyOrThrow("station search")
+            val response = stationsApi.cercaStazione(query)
+            when (response.status) {
+                // No station matches the query
+                204 -> emptyList()
+                else -> response.bodyOrThrow("station search")
+            }
         }
     }
 
     /**
      * Station details, or `null` when ViaggiaTreno has none for [stationId].
+     *
+     * ViaggiaTreno does not answer unknown stations with `204 No Content`: their region lookup is empty (region `0`) and
+     * the details are a placeholder whose names are all `Y`, which is treated as no details.
      *
      * @throws ProviderUnavailableException if ViaggiaTreno cannot be reached or rejects the request
      */
@@ -46,10 +55,12 @@ class ViaggiaTrenoStationsApiWrapper(
             val response = stationsApi.dettaglioStazione(stationId, regionCode)
             when (response.status) {
                 204 -> null
-                else -> response.bodyOrThrow("station details")
+                else -> response.bodyOrThrow("station details").takeUnless { regionCode == 0 && it.isPlaceholder() }
             }
         }
     }
+
+    private fun StazioneDettagliata.isPlaceholder() = localita?.nomeLungo == "Y" && localita.nomeBreve == "Y"
 
     private suspend fun getRegionCode(stationId: String) = cache.getOrPut(
         key = Cache.Key.of("station-region-$stationId"),

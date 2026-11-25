@@ -1,0 +1,58 @@
+{
+  "id": "S01700_2185_1769122800000",
+  "train": {
+    "id": "2185",
+    "origin": {
+      "id": "S01700",
+      "name": "Milano Centrale"
+    },
+    "destination": {
+      "id": "S00452",
+      "name": "Torino Lingotto"
+    }
+  },
+  "status": "DELAYED",
+  "origin": {
+    "station": {
+      "id": "S01700",
+      "name": "Milano Centrale"
+    },
+    "status": "DEPARTED",
+    "departureTime": {
+      "scheduled": "2026-01-23T21:15",
+      "expected": "2026-01-23T21:15",
+      "actual": "2026-01-23T21:18"
+    }
+  },
+  "destination": {
+    "station": {
+      "id": "S00452",
+      "name": "Torino Lingotto"
+    },
+    "status": "NOT_YET_ARRIVED",
+    "arrivalTime": {
+      "scheduled": "2026-01-23T23:15",
+      "expected": "2026-01-23T23:20"
+    }
+  },
+  "stops": [
+    {
+      "station": {
+        "id": "S01820",
+        "name": "Milano Rogoredo"
+      },
+      "status": "ARRIVED",
+      "arrivalTime": {
+        "scheduled": "2026-01-23T21:25",
+        "expected": "2026-01-23T21:28",
+        "actual": "2026-01-23T21:29"
+      },
+      "departureTime": {
+        "scheduled": "2026-01-23T21:27",
+        "expected": "2026-01-23T21:30"
+      }
+    }
+  ],
+  "lastUpdate": "2026-01-23T21:30",
+  "lastUpdateFromProvider": "2026-01-23T21:29"
+}

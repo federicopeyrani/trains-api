@@ -66,8 +66,26 @@ kotlin {
     }
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+// Tests tagged by `@ProviderContractTest` call real external providers: they are kept out of `test` (and so of
+// `check`/`build`) and run on demand with `./gradlew providerContractTest`
+val providerContractTag = "provider-contract"
+
+tasks.test {
+    useJUnitPlatform {
+        excludeTags(providerContractTag)
+    }
+}
+
+tasks.register<Test>("providerContractTest") {
+    description = "Checks the contract of the real external providers (needs network access; may be rate limited)."
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeTags(providerContractTag)
+    }
+    // The provider changes independently of the code, so never consider a previous run up to date
+    outputs.upToDateWhen { false }
 }
 
 tasks.named("openApiGenerate", GenerateTask::class) {

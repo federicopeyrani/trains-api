@@ -5,14 +5,14 @@ import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.m
 
 /**
  * Title-cases an upper-case ViaggiaTreno station name, keeping separators (e.g. "SESTO S.GIOVANNI" becomes
- * "Sesto S.Giovanni").
+ * "Sesto S.Giovanni", "PONTE D'ADDA" becomes "Ponte D'Adda").
  */
 fun String.toStationDisplayName() =
     // Using a positive lookbehind to split on special characters, but keeping them in the result to
     // avoid removing them (e.g. "Sesto S.Giovanni" should not become "Sesto S Giovanni")
     //
     // example: Sesto S.Giovanni --> ["Sesto ", "S.", "Giovanni"]
-    split(Regex("(?<=\\s|\\.|-)"))
+    split(Regex("(?<=\\s|\\.|-|')"))
         .joinToString(separator = "") {
             it
                 .lowercase()
