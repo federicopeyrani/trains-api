@@ -765,7 +765,7 @@ components:
         Detailed train journey information with all stops and real-time status.
         Train status is encoded in tipoTreno and provvedimento fields:
         - tipoTreno='PG' + provvedimento=0: Regular train
-        - tipoTreno='ST' + provvedimento=1: Cancelled (fermate array is empty)
+        - tipoTreno='ST' + provvedimento=1: Cancelled (answered with 200 and the full fermate list, ritardo null)
         - tipoTreno in ('PP','SI','SF') + provvedimento in (0,2): Partially cancelled
         - tipoTreno='DV' + provvedimento=3: Diverted
       required:
@@ -853,7 +853,7 @@ components:
           description: |
             Train status code:
             - 0: Regular
-            - 1: Cancelled (fermate array will be empty)
+            - 1: Cancelled (the fermate list is still complete)
             - 2: Partially cancelled
             - 3: Diverted
           example: 0
@@ -1007,11 +1007,8 @@ components:
         actualFermataType:
           type: integer
           description: |
-            Stop status code:
-            - 0: Data unavailable (arrivoReale/partenzaReale are null)
-            - 1: Regular stop
-            - 2: Unplanned stop (not originally scheduled)
-            - 3: Cancelled stop (for partially cancelled trains)
+            Stop status code. Observed: 0 (not yet reached) and 1 (reached or passed, sometimes without real times).
+            The official site treats 3 as a cancelled stop (never observed so far).
           example: 1
         binarioEffettivoArrivoCodice:
           type: string

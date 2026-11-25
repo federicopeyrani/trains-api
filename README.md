@@ -35,15 +35,14 @@ When you build the project, the following files are generated in `build/generate
 
 1. Define your API endpoints in `src/main/resources/openapi.yaml`
 2. Run `./gradlew openApiGenerate` to generate the API interfaces and models
-3. Create controller classes that implement the generated API interfaces in `src/main/kotlin/com/federicopeyrani/trainapis/controller/`
+3. Tag the operation with its feature (e.g. `tags: [trips]`) and implement the generated `<Tag>Api` interface in that feature's inbound web adapter, e.g. `src/main/kotlin/com/federicopeyrani/trainapis/trip/adapter/inbound/web/` (see CLAUDE.md for the hexagonal layout)
 
 Example:
 ```kotlin
 @RestController
-class TrainsController : TrainsApi {
-    override fun getAllTrains(): ResponseEntity<Flow<Train>> {
-        // Your implementation here
-    }
+class TripsController(private val getRunUseCase: GetRunUseCase) : TripsApi {
+    override suspend fun getRun(runId: String): ResponseEntity<Run> =
+        ResponseEntity.ok(getRunUseCase.getRun(runId).toDto())
 }
 ```
 

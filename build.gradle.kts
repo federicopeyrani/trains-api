@@ -41,8 +41,6 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
-    // Spring Cache
-    implementation("org.springframework.boot:spring-boot-starter-cache")
 
     implementation("io.ktor:ktor-client-core:3.6.1")
     implementation("io.ktor:ktor-client-content-negotiation:3.6.1")
@@ -59,8 +57,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-    testImplementation("io.mockk:mockk:1.14.12")
-    testImplementation("com.ninja-squad:springmockk:5.0.1")
+    testImplementation("com.tngtech.archunit:archunit:1.4.2")
 }
 
 kotlin {
@@ -69,8 +66,26 @@ kotlin {
     }
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+// Tests tagged by `@ProviderContractTest` call real external providers: they are kept out of `test` (and so of
+// `check`/`build`) and run on demand with `./gradlew providerContractTest`
+val providerContractTag = "provider-contract"
+
+tasks.test {
+    useJUnitPlatform {
+        excludeTags(providerContractTag)
+    }
+}
+
+tasks.register<Test>("providerContractTest") {
+    description = "Checks the contract of the real external providers (needs network access; may be rate limited)."
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeTags(providerContractTag)
+    }
+    // The provider changes independently of the code, so never consider a previous run up to date
+    outputs.upToDateWhen { false }
 }
 
 tasks.named("openApiGenerate", GenerateTask::class) {
@@ -79,6 +94,7 @@ tasks.named("openApiGenerate", GenerateTask::class) {
     outputDir = layout.buildDirectory.dir("generated")
     apiPackage = "com.federicopeyrani.trainapis.api"
     modelPackage = "com.federicopeyrani.trainapis.model"
+    cleanupOutput = true
     configOptions = mapOf(
         "interfaceOnly" to "true",
         "useSpringBoot3" to "true",
@@ -93,10 +109,10 @@ tasks.named("openApiGenerate", GenerateTask::class) {
         "additionalModelTypeAnnotations" to "@kotlinx.serialization.Serializable",
     )
     typeMappings = mapOf(
-        "DateTime" to "LocalDateTime"
+        "DateTime" to "Instant"
     )
     importMappings = mapOf(
-        "LocalDateTime" to "kotlinx.datetime.LocalDateTime"
+        "Instant" to "kotlin.time.Instant"
     )
 }
 
@@ -104,8 +120,10 @@ tasks.register("openApiGenerateViaggiatreno", GenerateTask::class) {
     generatorName = "kotlin"
     inputSpec = layout.projectDirectory.file("src/main/resources/viaggiatreno-api.yaml")
     outputDir = layout.buildDirectory.dir("generated-viaggiatreno")
-    apiPackage = "com.federicopeyrani.trainapis.providers.viaggiatreno.client.api"
-    modelPackage = "com.federicopeyrani.trainapis.providers.viaggiatreno.client.model"
+    packageName = "com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client"
+    apiPackage = "com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.api"
+    modelPackage = "com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model"
+    cleanupOutput = true
     configOptions = mapOf(
         "dateLibrary" to "kotlinx-datetime",
         "serializationLibrary" to "kotlinx_serialization",

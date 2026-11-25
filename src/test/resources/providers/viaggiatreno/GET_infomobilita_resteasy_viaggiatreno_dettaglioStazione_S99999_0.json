@@ -1,0 +1,38 @@
+{
+  "key": "S99999_0",
+  "codReg": 0,
+  "tipoStazione": 3,
+  "dettZoomStaz": [
+    {
+      "codiceStazione": "S99999",
+      "zoomStartRange": 6,
+      "zoomStopRange": 11,
+      "pinpointVisibile": false,
+      "pinpointVisible": false,
+      "labelVisibile": false,
+      "labelVisible": false,
+      "codiceRegione": 0
+    }
+  ],
+  "pstaz": [],
+  "mappaCitta": {
+    "urlImagePinpoint": "",
+    "urlImageBaloon": ""
+  },
+  "codiceStazione": "S99999",
+  "codStazione": "S99999",
+  "lat": 44.040219,
+  "lon": 10.854492,
+  "latMappaCitta": 0.0,
+  "lonMappaCitta": 0.0,
+  "localita": {
+    "nomeLungo": "Y",
+    "nomeBreve": "Y",
+    "label": "",
+    "id": "S99999"
+  },
+  "esterno": false,
+  "offsetX": 0,
+  "offsetY": 0,
+  "nomeCitta": "Y"
+}

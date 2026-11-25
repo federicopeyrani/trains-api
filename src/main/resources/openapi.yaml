@@ -9,8 +9,9 @@ paths:
 
   /stations:
     get:
-      summary: Get all stations
+      summary: Search stations by name
       operationId: getStations
+      tags: [stations]
       parameters:
         - name: query
           in: query
@@ -19,18 +20,23 @@ paths:
             type: string
       responses:
         '200':
-          description: A list of all stations
+          description: Stations whose name matches the query (empty when the query is blank)
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/StationDetails'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
 
   /departures/{from}:
     get:
       summary: Get departures from a station
       operationId: getDepartures
+      tags: [trips]
       parameters:
         - name: from
           in: path
@@ -40,12 +46,20 @@ paths:
         - name: date
           in: query
           required: false
+          description: |
+            Departure time to search from, as an RFC 3339 date-time (e.g. `2026-01-23T21:15:00Z` or `2026-01-23T22:15:00+01:00`). A date-time without offset is read as UTC. Defaults to now.
+
+            Results come from the provider's live departure board around that time: trains scheduled from about 15
+            minutes before to about 105 minutes after it, minus those that left the station a while ago. Earlier times
+            give few or no results, and the provider only tracks today's trains, so on other days trips have no run.
           schema:
             type: string
             format: date-time
       responses:
         '200':
-          description: A list of trips departing from the specified station
+          description: |
+            Trips departing from the specified station. As `application/json`, sorted by scheduled departure; as
+            `text/event-stream`, each trip is sent as soon as it is known, in no particular order.
           content:
             application/json:
               schema:
@@ -57,11 +71,18 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
 
   /trips/{from}/{to}:
     get:
       summary: Get trips between two stations
       operationId: getTrips
+      tags: [trips]
       parameters:
         - name: from
           in: path
@@ -76,28 +97,46 @@ paths:
         - name: date
           in: query
           required: false
+          description: |
+            Departure time to search from, as an RFC 3339 date-time (e.g. `2026-01-23T21:15:00Z` or `2026-01-23T22:15:00+01:00`). A date-time without offset is read as UTC. Defaults to now.
+
+            Results come from the provider's live departure board around that time: trains scheduled from about 15
+            minutes before to about 105 minutes after it, minus those that left the station a while ago. Earlier times
+            give few or no results, and the provider only tracks today's trains, so on other days trips have no run.
           schema:
             type: string
             format: date-time
       responses:
         '200':
-          description: A list of trips between the specified stations
+          description: |
+            Trips between the specified stations, sorted by scheduled departure. Departures whose run could not be
+            checked are left out and only counted in `unverifiedDepartures`: when it is not 0, some of them may also
+            reach the destination.
+
+            As `text/event-stream`, every trip is sent as soon as it is known (in no particular order) as an unnamed
+            event with a `Trip` as data, followed by one final
+            `summary` event whose data is a `TripSearchSummary`. A stream without the `summary` event is incomplete.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Trip'
+                $ref: '#/components/schemas/TripSearch'
             text/event-stream:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
 
   /trips/all:
     get:
       summary: Get trips between multiple stations
       operationId: getAllTrips
+      tags: [trips]
       parameters:
         - name: from
           in: query
@@ -116,28 +155,46 @@ paths:
         - name: date
           in: query
           required: false
+          description: |
+            Departure time to search from, as an RFC 3339 date-time (e.g. `2026-01-23T21:15:00Z` or `2026-01-23T22:15:00+01:00`). A date-time without offset is read as UTC. Defaults to now.
+
+            Results come from the provider's live departure board around that time: trains scheduled from about 15
+            minutes before to about 105 minutes after it, minus those that left the station a while ago. Earlier times
+            give few or no results, and the provider only tracks today's trains, so on other days trips have no run.
           schema:
             type: string
             format: date-time
       responses:
         '200':
-          description: A list of trips between the specified stations
+          description: |
+            Trips between the specified stations, sorted by scheduled departure. Departures whose run could not be
+            checked are left out and only counted in `unverifiedDepartures`: when it is not 0, some of them may also
+            reach the destination.
+
+            As `text/event-stream`, every trip is sent as soon as it is known (in no particular order) as an unnamed
+            event with a `Trip` as data, followed by one final
+            `summary` event whose data is a `TripSearchSummary`. A stream without the `summary` event is incomplete.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Trip'
+                $ref: '#/components/schemas/TripSearch'
             text/event-stream:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
 
   /runs/{runId}:
     get:
       summary: Get details of a specific run
       operationId: getRun
+      tags: [trips]
       parameters:
         - name: runId
           in: path
@@ -151,8 +208,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Run'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
+
 components:
+  responses:
+    BadRequest:
+      description: The request is malformed (missing or invalid parameter, invalid run id)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: A requested station or run does not exist
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProviderUnavailable:
+      description: The data provider cannot serve the request right now (rate limiting, outage); retry later
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
   schemas:
+    Problem:
+      description: RFC 9457 problem details
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
     Station:
       type: object
       required:
@@ -187,7 +284,6 @@ components:
       required:
         - from
         - to
-        - status
         - lastUpdate
       properties:
         from:
@@ -197,16 +293,37 @@ components:
         lastUpdate:
           $ref: '#/components/schemas/LastUpdated'
         lastUpdateFromProvider:
+          description: When the provider last detected the train's position. Absent before departure.
           $ref: '#/components/schemas/LastUpdated'
         run:
           $ref: '#/components/schemas/Run'
+    TripSearchSummary:
+      type: object
+      required:
+        - unverifiedDepartures
+      properties:
+        unverifiedDepartures:
+          description: |
+            Departures from the origin stations that might reach a destination but could not be checked (their run
+            could not be fetched). They are not part of the trips; when not 0, the result is incomplete.
+          type: integer
+          minimum: 0
+    TripSearch:
+      allOf:
+        - $ref: '#/components/schemas/TripSearchSummary'
+        - type: object
+          required:
+            - trips
+          properties:
+            trips:
+              type: array
+              items:
+                $ref: '#/components/schemas/Trip'
     Run:
       description: A specific run of a train on a given date. Only one run per train per date exists.
       type: object
       required:
         - id
-        - originDepartureTime
-        - destinationArrivalTime
         - train
         - status
         - origin
@@ -231,10 +348,12 @@ components:
         lastUpdate:
           $ref: '#/components/schemas/LastUpdated'
         lastUpdateFromProvider:
+          description: When the provider last detected the train's position. Absent before departure.
           $ref: '#/components/schemas/LastUpdated'
     RunId:
       type: string
     Timing:
+      description: Times of an event. Like every date-time of this API, they are RFC 3339 instants in UTC (e.g. `2026-01-23T21:15:00Z`).
       type: object
       required:
         - scheduled
@@ -292,6 +411,7 @@ components:
         - ARRIVED
         - DEPARTED
         - NOT_YET_DEPARTED
+        - CANCELLED
     Status:
       type: string
       enum:
@@ -299,6 +419,7 @@ components:
         - DELAYED
         - CANCELLED
     LastUpdated:
+      description: When the data was last refreshed.
       type: string
       format: date-time
     Train:
