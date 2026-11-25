@@ -122,6 +122,17 @@ class ViaggiaTrenoTripsProviderTests {
     }
 
     @Test
+    fun `requests boards with the summer time offset of Europe-Rome`() = runTest {
+        val summerBoardPath = "partenze/S01700/Thu Jul 23 2026 22:20:00 GMT+0200"
+        val upstream = Upstream(mapOf(summerBoardPath to HttpStatusCode.Forbidden))
+
+        assertFailsWith<ProviderUnavailableException> {
+            upstream.provider.getDepartures("S01700", Instant.parse("2026-07-23T20:20:00Z")).toList()
+        }
+        assertEquals(listOf(summerBoardPath), upstream.requests().filter { it.startsWith("partenze/") })
+    }
+
+    @Test
     fun `run unknown to the provider is not found`() = runTest {
         val upstream = Upstream(mapOf(trainPath(1) to HttpStatusCode.NoContent))
 

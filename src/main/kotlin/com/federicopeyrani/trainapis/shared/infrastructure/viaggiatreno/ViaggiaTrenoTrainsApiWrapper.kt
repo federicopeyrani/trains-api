@@ -8,12 +8,14 @@ import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.m
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.PartenzeArrivi
 import com.federicopeyrani.trainapis.shared.util.log
 import kotlinx.coroutines.CancellationException
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.format
+import kotlinx.datetime.UtcOffset
+import kotlinx.datetime.offsetAt
+import kotlinx.datetime.format.DateTimeComponents
 import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
+import kotlinx.datetime.format.format
 import kotlinx.datetime.toLocalDateTime
 import org.springframework.stereotype.Component
 import kotlin.time.Duration.Companion.minutes
@@ -29,8 +31,9 @@ class ViaggiaTrenoTrainsApiWrapper(
 
         private val log = log()
 
-        // Format date as 'Tue Jan 20 2026 22:21:07 GMT+0100'
-        private val dateFormatter = LocalDateTime.Format {
+        // Format date as 'Tue Jan 20 2026 22:21:07 GMT+0100' (JavaScript's `Date.toString()`), with the offset of
+        // Europe/Rome at that date, so '+0200' during summer time
+        private val dateFormatter = DateTimeComponents.Format {
             dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED)
             char(' ')
             monthName(MonthNames.ENGLISH_ABBREVIATED)
@@ -44,8 +47,8 @@ class ViaggiaTrenoTrainsApiWrapper(
             minute()
             char(':')
             second()
-            char(' ')
-            chars("GMT+0100")
+            chars(" GMT")
+            offset(UtcOffset.Formats.FOUR_DIGITS)
         }
 
         private val zone = TimeZone.of("Europe/Rome")
@@ -66,7 +69,9 @@ class ViaggiaTrenoTrainsApiWrapper(
     }
 
     private suspend fun fetchDepartures(from: String, date: Instant): List<PartenzeArrivi> {
-        val formattedDate = date.toLocalDateTime(zone).format(dateFormatter)
+        val formattedDate = dateFormatter.format {
+            setDateTimeOffset(date.toLocalDateTime(zone), zone.offsetAt(date))
+        }
 
         log.info("Fetching departures from ViaggiaTreno for station '$from' at date '$formattedDate'")
 
