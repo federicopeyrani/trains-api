@@ -1,17 +1,19 @@
 package com.federicopeyrani.trainapis.station.adapter.outbound.viaggiatreno
 
-import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationsApiWrapper
+
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoProperties
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationsApiWrapper
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.StazioneDettagliata
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.displayName
+import com.federicopeyrani.trainapis.shared.util.log
 import com.federicopeyrani.trainapis.station.application.port.outbound.StationsProvider
 import com.federicopeyrani.trainapis.station.domain.GeoLocation
 import com.federicopeyrani.trainapis.station.domain.StationDetails
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.flatMapMerge
 import kotlinx.coroutines.flow.flow
-
 import org.springframework.stereotype.Component
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -21,17 +23,25 @@ class ViaggiaTrenoStationsProvider(
     private val properties: ViaggiaTrenoProperties,
 ) : StationsProvider {
 
+    private val log = log()
+
     override fun getStations(query: String) = flow {
         viaggiaTrenoStationsApiWrapper.searchStations(query)
             .data
             .asFlow()
             .flatMapMerge(concurrency = properties.concurrency) {
                 flow {
-                    viaggiaTrenoStationsApiWrapper
-                        .getStationDetails(it.id)
-                        .data
-                        ?.toStationDetails()
-                        ?.let { emit(it) }
+                    // Best effort: a station whose details cannot be fetched is skipped rather than failing the
+                    // whole (already streaming) result
+                    val details = try {
+                        viaggiaTrenoStationsApiWrapper.getStationDetails(it.id).data
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        log.warn("Skipping station ${it.id}: ${e.message}")
+                        null
+                    }
+                    details?.toStationDetails()?.let { emit(it) }
                 }
             }
             .collect { emit(it) }

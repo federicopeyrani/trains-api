@@ -1,8 +1,10 @@
 package com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno
 
+import com.federicopeyrani.trainapis.shared.domain.ProviderUnavailableException
 import com.federicopeyrani.trainapis.shared.infrastructure.cache.Cache
 import com.federicopeyrani.trainapis.shared.infrastructure.cache.CacheElement
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.api.TrainsApi
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.AndamentoTreno
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.PartenzeArrivi
 import com.federicopeyrani.trainapis.shared.util.log
 import kotlinx.coroutines.CancellationException
@@ -68,36 +70,50 @@ class ViaggiaTrenoTrainsApiWrapper(
 
         log.info("Fetching departures from ViaggiaTreno for station '$from' at date '$formattedDate'")
 
-        return trainsApi
-            .getPartenze(from, formattedDate)
-            .body()
+        return viaggiaTrenoCall("departures") {
+            trainsApi
+                .getPartenze(from, formattedDate)
+                .bodyOrThrow("departures")
+        }
     }
 
     suspend fun getTrain(trip: PartenzeArrivi) =
         getTrain(trip.codOrigine, trip.numeroTreno, trip.dataPartenzaTreno)
 
-    suspend fun getTrainOrNull(trip: PartenzeArrivi) =
+    /**
+     * Like [getTrain], but logs and returns `null` instead of failing, for best-effort enrichment.
+     */
+    suspend fun getTrainOrNull(trip: PartenzeArrivi): CacheElement<AndamentoTreno>? =
         try {
-            getTrain(trip)
+            getTrain(trip).let { element -> element.data?.let { CacheElement(it, element.timestamp, element.ttl) } }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            log.warn("Failed to fetch train details for train ${trip.numeroTreno}", e)
+            log.warn("Failed to fetch train details for train ${trip.numeroTreno}: ${e.message}")
             null
         }
 
+    /**
+     * Status of train [trainId] departed from [from] on [date], or `null` when ViaggiaTreno does not know it.
+     *
+     * @throws ProviderUnavailableException if ViaggiaTreno cannot be reached or rejects the request
+     */
     suspend fun getTrain(
         from: String,
         trainId: Int,
         date: Long,
     ) = cache.getOrPut(
-        key = Cache.Key.of("train-${from}-${trainId}-${date}"),
-        ttl = { 10.minutes }
+        key = Cache.Key.of<AndamentoTreno?>("train-${from}-${trainId}-${date}"),
+        ttl = { if (it == null) 1.minutes else 10.minutes }
     ) {
         log.info("Fetching train status from ViaggiaTreno API for trainId=${trainId} on date=$date at stationId=$from")
 
-        trainsApi
-            .andamentoTreno(from, trainId, date)
-            .body()
+        viaggiaTrenoCall("train status") {
+            val response = trainsApi.andamentoTreno(from, trainId, date)
+            when (response.status) {
+                204 -> null
+                else -> response.bodyOrThrow("train status")
+            }
+        }
     }
 }

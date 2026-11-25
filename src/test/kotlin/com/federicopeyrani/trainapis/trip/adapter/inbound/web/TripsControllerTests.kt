@@ -1,5 +1,6 @@
 package com.federicopeyrani.trainapis.trip.adapter.inbound.web
 
+import com.federicopeyrani.trainapis.shared.domain.ProviderUnavailableException
 import com.federicopeyrani.trainapis.shared.domain.Station
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetAllTripsUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetDeparturesUseCase
@@ -7,6 +8,8 @@ import com.federicopeyrani.trainapis.trip.application.port.inbound.GetRunUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetTripsUseCase
 import com.federicopeyrani.trainapis.trip.domain.DestinationStop
 import com.federicopeyrani.trainapis.trip.domain.OriginStop
+import com.federicopeyrani.trainapis.trip.domain.RunId
+import com.federicopeyrani.trainapis.trip.domain.RunNotFoundException
 import com.federicopeyrani.trainapis.trip.domain.Timing
 import com.federicopeyrani.trainapis.trip.domain.Trip
 import kotlinx.coroutines.flow.emptyFlow
@@ -73,7 +76,13 @@ class TripsControllerTests(
         fun getAllTrips() = GetAllTripsUseCase { _, _, _ -> emptyFlow() }
 
         @Bean
-        fun getRun() = GetRunUseCase { error("Not used in this test") }
+        fun getRun() = GetRunUseCase { id ->
+            when (id) {
+                "S01700_1_0" -> throw RunNotFoundException(RunId.parse(id))
+                "S01700_2_0" -> throw ProviderUnavailableException("ViaggiaTreno train status returned HTTP 403")
+                else -> RunId.parse(id).let { error("Unexpected run $it") }
+            }
+        }
     }
 
     @Test
@@ -90,5 +99,23 @@ class TripsControllerTests(
             .isOk
             .expectBody()
             .json(expectedJson, JsonCompareMode.STRICT)
+    }
+
+    @Test
+    fun `maps domain failures to problem responses`() {
+        mapOf(
+            "not-a-run-id" to 400,
+            "S01700_1_0" to 404,
+            "S01700_2_0" to 503,
+        ).forEach { (runId, status) ->
+            webTestClient
+                .get()
+                .uri("/runs/$runId")
+                .exchange()
+                .expectStatus()
+                .isEqualTo(status)
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(status)
+        }
     }
 }

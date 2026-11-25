@@ -102,6 +102,7 @@ tasks.register("openApiGenerateViaggiatreno", GenerateTask::class) {
     generatorName = "kotlin"
     inputSpec = layout.projectDirectory.file("src/main/resources/viaggiatreno-api.yaml")
     outputDir = layout.buildDirectory.dir("generated-viaggiatreno")
+    packageName = "com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client"
     apiPackage = "com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.api"
     modelPackage = "com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model"
     cleanupOutput = true

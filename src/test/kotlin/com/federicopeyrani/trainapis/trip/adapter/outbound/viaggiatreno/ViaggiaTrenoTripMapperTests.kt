@@ -9,7 +9,6 @@ import com.federicopeyrani.trainapis.trip.domain.StopStatus
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.time.Instant
 
 /**
@@ -44,9 +43,9 @@ class ViaggiaTrenoTripMapperTests {
     }
 
     @Test
-    fun `fails when a station was not resolved`() {
-        assertFailsWith<IllegalStateException> {
-            train.toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations - "S01915")
-        }
+    fun `falls back to the stop name when a station was not resolved`() {
+        val run = train.toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations - "S01915")
+
+        assertEquals("Cremona", run.destination.station.name)
     }
 }

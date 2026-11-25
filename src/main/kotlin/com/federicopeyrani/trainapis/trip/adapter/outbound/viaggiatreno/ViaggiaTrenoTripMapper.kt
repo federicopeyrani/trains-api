@@ -4,6 +4,7 @@ import com.federicopeyrani.trainapis.shared.domain.Station
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.AndamentoTreno
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.Fermata
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.PartenzeArrivi
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.toStationDisplayName
 import com.federicopeyrani.trainapis.shared.util.convertTimeZone
 import com.federicopeyrani.trainapis.trip.domain.Departure
 import com.federicopeyrani.trainapis.trip.domain.DestinationStop
@@ -26,7 +27,8 @@ import kotlin.time.Instant
 /**
  * Pure translation of ViaggiaTreno payloads into trip domain models.
  *
- * Station names are not part of the payloads, so callers resolve them beforehand and pass them in.
+ * Station details are not part of the payloads, so callers resolve them beforehand and pass them in; stops whose
+ * station could not be resolved fall back to the name carried by the stop itself.
  * ViaggiaTreno times are Europe/Rome; domain times are UTC.
  */
 object ViaggiaTrenoTripMapper {
@@ -46,7 +48,7 @@ object ViaggiaTrenoTripMapper {
 
     /**
      * @param departureDate epoch millis of the run's departure day at midnight (provider time)
-     * @param stations every station in [stationIds], by id
+     * @param stations resolved stations by id (normally every id in [stationIds])
      */
     fun AndamentoTreno.toRun(departureDate: Long, lastUpdate: Instant, stations: Map<String, Station>): Run {
         val calls = fermate?.takeIf { it.isNotEmpty() } ?: error("Train $numeroTreno has no stops")
@@ -54,7 +56,7 @@ object ViaggiaTrenoTripMapper {
         val last = calls.last()
         val tripDate = departureDate.asProviderDateTime().date
 
-        fun Fermata.station() = stations[id] ?: error("Station '$id' of train $numeroTreno was not resolved")
+        fun Fermata.station() = stations[id] ?: Station(id = id, name = stazione.toStationDisplayName())
 
         return Run(
             id = RunId(originStationId = first.id, trainNumber = numeroTreno, departureDate = departureDate),

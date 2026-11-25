@@ -4,6 +4,22 @@ import com.federicopeyrani.trainapis.shared.domain.Station
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.StazioneDettagliata
 
 /**
+ * Title-cases an upper-case ViaggiaTreno station name, keeping separators (e.g. "SESTO S.GIOVANNI" becomes
+ * "Sesto S.Giovanni").
+ */
+fun String.toStationDisplayName() =
+    // Using a positive lookbehind to split on special characters, but keeping them in the result to
+    // avoid removing them (e.g. "Sesto S.Giovanni" should not become "Sesto S Giovanni")
+    //
+    // example: Sesto S.Giovanni --> ["Sesto ", "S.", "Giovanni"]
+    split(Regex("(?<=\\s|\\.|-)"))
+        .joinToString(separator = "") {
+            it
+                .lowercase()
+                .replaceFirstChar { it.titlecase() }
+        }
+
+/**
  * Human-friendly station name.
  */
 fun StazioneDettagliata.displayName() =
@@ -14,16 +30,7 @@ fun StazioneDettagliata.displayName() =
     // ...or if the API just decides to do so for some reason
     localita
         ?.nomeLungo
-        // Using a positive lookbehind to split on special characters, but keeping them in the result to
-        // avoid removing them (e.g. "Sesto S.Giovanni" should not become "Sesto S Giovanni")
-        //
-        // example: Sesto S.Giovanni --> ["Sesto ", "S.", "Giovanni"]
-        ?.split(Regex("(?<=\\s|\\.|-)"))
-        ?.joinToString(separator = "") {
-            it
-                .lowercase()
-                .replaceFirstChar { it.titlecase() }
-        }
+        ?.toStationDisplayName()
         ?: codStazione
 
 fun StazioneDettagliata.toStation() = Station(
