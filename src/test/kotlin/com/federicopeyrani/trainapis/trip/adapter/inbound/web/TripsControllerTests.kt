@@ -20,6 +20,8 @@ import com.federicopeyrani.trainapis.trip.domain.Trip
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
@@ -47,7 +49,7 @@ class TripsControllerTests(
 
     companion object {
 
-        private fun at(hour: Int, minute: Int) = LocalDateTime(2026, 1, 23, hour, minute)
+        private fun at(hour: Int, minute: Int) = LocalDateTime(2026, 1, 23, hour, minute).toInstant(TimeZone.UTC)
 
         private val centrale = Station("S01700", "Milano Centrale")
         private val rogoredo = Station("S01820", "Milano Rogoredo")

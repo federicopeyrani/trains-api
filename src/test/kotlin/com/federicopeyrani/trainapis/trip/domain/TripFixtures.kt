@@ -1,18 +1,18 @@
 package com.federicopeyrani.trainapis.trip.domain
 
 import com.federicopeyrani.trainapis.shared.domain.Station
-import kotlinx.datetime.LocalDateTime
+import kotlin.time.Instant
 
 /**
  * Builders for trip domain objects. A run calls at [stations] in order, one hour apart, starting at 08:00 UTC.
  */
 object TripFixtures {
 
-    val updatedAt = LocalDateTime(2026, 1, 23, 7, 0)
+    val updatedAt: Instant = Instant.parse("2026-01-23T07:00:00Z")
 
     fun station(id: String) = Station(id = id, name = "Station $id")
 
-    private fun at(hour: Int) = LocalDateTime(2026, 1, 23, hour, 0)
+    private fun at(hour: Int) = Instant.parse("2026-01-23T%02d:00:00Z".format(hour))
 
     fun run(vararg stations: String, trainNumber: Int = 100): Run {
         require(stations.size >= 2)

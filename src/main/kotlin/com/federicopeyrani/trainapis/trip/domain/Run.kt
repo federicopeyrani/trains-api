@@ -1,6 +1,6 @@
 package com.federicopeyrani.trainapis.trip.domain
 
-import kotlinx.datetime.LocalDateTime
+import kotlin.time.Instant
 
 /**
  * A specific run of a train on a given date. Only one run per train per date exists.
@@ -14,8 +14,8 @@ data class Run(
     val origin: OriginStop,
     val destination: DestinationStop,
     val stops: List<IntermediateStop>,
-    val lastUpdate: LocalDateTime,
-    val lastUpdateFromProvider: LocalDateTime? = null,
+    val lastUpdate: Instant,
+    val lastUpdateFromProvider: Instant? = null,
 ) {
 
     private val destinationIndex get() = stops.size + 1

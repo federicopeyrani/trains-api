@@ -5,7 +5,6 @@ import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.m
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.Fermata
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.PartenzeArrivi
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.toStationDisplayName
-import com.federicopeyrani.trainapis.shared.util.convertTimeZone
 import com.federicopeyrani.trainapis.trip.domain.Departure
 import com.federicopeyrani.trainapis.trip.domain.DestinationStop
 import com.federicopeyrani.trainapis.trip.domain.IntermediateStop
@@ -16,7 +15,6 @@ import com.federicopeyrani.trainapis.trip.domain.RunStatus
 import com.federicopeyrani.trainapis.trip.domain.Timing
 import com.federicopeyrani.trainapis.trip.domain.Train
 import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atTime
@@ -32,7 +30,7 @@ import kotlin.time.Instant
  *
  * Station details are not part of the payloads, so callers resolve them beforehand and pass them in; stops whose
  * station could not be resolved fall back to the name carried by the stop itself.
- * ViaggiaTreno times are Europe/Rome; domain times are UTC.
+ * ViaggiaTreno gives times as epoch millis or as `HH:mm` in Europe/Rome; domain times are instants.
  */
 object ViaggiaTrenoTripMapper {
 
@@ -71,24 +69,23 @@ object ViaggiaTrenoTripMapper {
             origin = OriginStop.of(
                 station = first.station(),
                 departureTime = Timing(
-                    scheduled = orarioPartenza.asUTCDateTime(),
-                    expected = first.partenzaTeorica?.asUTCDateTime(),
-                    actual = first.partenzaReale?.asUTCDateTime(),
+                    scheduled = orarioPartenza.asInstant(),
+                    expected = first.partenzaTeorica?.asInstant(),
+                    actual = first.partenzaReale?.asInstant(),
                 ),
             ),
             destination = DestinationStop.of(
                 station = last.station(),
                 arrivalTime = Timing(
-                    scheduled = orarioArrivo.asUTCDateTime(),
+                    scheduled = orarioArrivo.asInstant(),
                     expected = compOrarioArrivoZeroEffettivo
-                        ?.parseAsTimeNear(orarioArrivo)
-                        ?.convertTimeZone(providerTimeZone, TimeZone.UTC),
-                    actual = last.arrivoReale?.asUTCDateTime(),
+                        ?.parseAsTimeNear(orarioArrivo),
+                    actual = last.arrivoReale?.asInstant(),
                 ),
             ),
             stops = calls.drop(1).dropLast(1).map { it.toIntermediateStop(it.station(), trainDelay = ritardo) },
-            lastUpdate = lastUpdate.toLocalDateTime(TimeZone.UTC),
-            lastUpdateFromProvider = ultimoRilev?.asUTCDateTime(),
+            lastUpdate = lastUpdate,
+            lastUpdateFromProvider = ultimoRilev?.asInstant(),
         )
     }
 
@@ -106,10 +103,10 @@ object ViaggiaTrenoTripMapper {
         destination = destination,
         // `orarioPartenza` is the departure from this station as an instant, so unlike `compOrarioPartenza` ("HH:mm")
         // it needs no date, which would be wrong for trains reaching this station after midnight
-        scheduledDeparture = orarioPartenza.asUTCDateTime(),
-        scheduledArrival = run?.destination?.arrivalTime?.scheduled ?: orarioArrivo?.asUTCDateTime(),
-        lastUpdate = boardLastUpdate.toLocalDateTime(TimeZone.UTC),
-        lastUpdateFromProvider = ultimoRilev?.asUTCDateTime(),
+        scheduledDeparture = orarioPartenza.asInstant(),
+        scheduledArrival = run?.destination?.arrivalTime?.scheduled ?: orarioArrivo?.asInstant(),
+        lastUpdate = boardLastUpdate,
+        lastUpdateFromProvider = ultimoRilev?.asInstant(),
         run = run,
     )
 
@@ -120,9 +117,9 @@ object ViaggiaTrenoTripMapper {
 
         return IntermediateStop.of(
             station = station,
-            arrivalTime = arrivoTeorico?.let { Timing.delayed(it.asUTCDateTime(), delay, arrivoReale?.asUTCDateTime()) },
+            arrivalTime = arrivoTeorico?.let { Timing.delayed(it.asInstant(), delay, arrivoReale?.asInstant()) },
             departureTime = partenzaTeorica?.let {
-                Timing.delayed(it.asUTCDateTime(), delay, partenzaReale?.asUTCDateTime())
+                Timing.delayed(it.asInstant(), delay, partenzaReale?.asInstant())
             },
         )
     }
@@ -133,9 +130,7 @@ object ViaggiaTrenoTripMapper {
         else -> RunStatus.ON_TIME
     }
 
-    private fun Long.asUTCDateTime() = Instant
-        .fromEpochMilliseconds(this)
-        .toLocalDateTime(TimeZone.UTC)
+    private fun Long.asInstant() = Instant.fromEpochMilliseconds(this)
 
     private fun Long.asProviderDateTime() = Instant
         .fromEpochMilliseconds(this)
@@ -145,13 +140,13 @@ object ViaggiaTrenoTripMapper {
      * Parses an `HH:mm` provider time as the occurrence closest to [reference] (epoch millis), so that times past
      * midnight land on the right day.
      */
-    private fun String.parseAsTimeNear(reference: Long): LocalDateTime {
+    private fun String.parseAsTimeNear(reference: Long): Instant {
         val time = timeFormatter.parse(this)
-        val referenceDateTime = reference.asProviderDateTime()
-        val referenceInstant = referenceDateTime.toInstant(providerTimeZone)
+        val referenceInstant = reference.asInstant()
+        val referenceDate = reference.asProviderDateTime().date
 
         return listOf(-1, 0, 1)
-            .map { referenceDateTime.date.plus(it, DateTimeUnit.DAY).atTime(time) }
-            .minBy { (it.toInstant(providerTimeZone) - referenceInstant).absoluteValue }
+            .map { referenceDate.plus(it, DateTimeUnit.DAY).atTime(time).toInstant(providerTimeZone) }
+            .minBy { (it - referenceInstant).absoluteValue }
     }
 }

@@ -8,7 +8,6 @@ import com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno.ViaggiaT
 import com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno.ViaggiaTrenoTripMapper.toRun
 import com.federicopeyrani.trainapis.trip.domain.RunStatus
 import com.federicopeyrani.trainapis.trip.domain.StopStatus
-import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -71,7 +70,7 @@ class ViaggiaTrenoTripMapperTests {
         )
         val run = overnight.toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations)
 
-        assertEquals(LocalDateTime(2026, 1, 23, 23, 40), run.destination.arrivalTime?.expected)
+        assertEquals(Instant.parse("2026-01-23T23:40:00Z"), run.destination.arrivalTime?.expected)
 
         // Board entry of the same day's run, leaving this station on Jan 24 at 00:10 Rome (23:10 UTC)
         val entry = board.first().copy(
@@ -81,6 +80,6 @@ class ViaggiaTrenoTripMapperTests {
         )
         val departure = entry.toDeparture(Station("S01700", "Milano Centrale"), run.destination.station, Instant.fromEpochSeconds(0), run = null)
 
-        assertEquals(LocalDateTime(2026, 1, 23, 23, 10), departure.scheduledDeparture)
+        assertEquals(Instant.parse("2026-01-23T23:10:00Z"), departure.scheduledDeparture)
     }
 }

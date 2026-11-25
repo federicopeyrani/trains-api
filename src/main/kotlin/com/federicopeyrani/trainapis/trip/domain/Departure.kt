@@ -1,7 +1,7 @@
 package com.federicopeyrani.trainapis.trip.domain
 
 import com.federicopeyrani.trainapis.shared.domain.Station
-import kotlinx.datetime.LocalDateTime
+import kotlin.time.Instant
 
 /**
  * An entry of [station]'s departure board, enriched with the train's [run] when it could be fetched.
@@ -13,10 +13,10 @@ import kotlinx.datetime.LocalDateTime
 data class Departure(
     val station: Station,
     val destination: Station,
-    val scheduledDeparture: LocalDateTime,
-    val scheduledArrival: LocalDateTime?,
-    val lastUpdate: LocalDateTime,
-    val lastUpdateFromProvider: LocalDateTime? = null,
+    val scheduledDeparture: Instant,
+    val scheduledArrival: Instant?,
+    val lastUpdate: Instant,
+    val lastUpdateFromProvider: Instant? = null,
     val run: Run? = null,
 ) {
 

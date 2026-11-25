@@ -15,7 +15,6 @@ import com.federicopeyrani.trainapis.upstreamPath
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -57,8 +56,8 @@ class ViaggiaTrenoTripsProviderTests {
         val toLingotto = departures.single { it.run?.train?.id == "7644" }
         assertEquals(Station("S01700", "Milano Centrale"), toLingotto.station)
         assertEquals(Station("S00452", "Torino Lingotto"), toLingotto.destination)
-        assertEquals(LocalDateTime(2026, 1, 23, 21, 15), toLingotto.scheduledDeparture)
-        assertEquals(LocalDateTime(2026, 1, 23, 21, 18), toLingotto.run?.origin?.departureTime?.actual)
+        assertEquals(Instant.parse("2026-01-23T21:15:00Z"), toLingotto.scheduledDeparture)
+        assertEquals(Instant.parse("2026-01-23T21:18:00Z"), toLingotto.run?.origin?.departureTime?.actual)
 
         val duplicated = upstream.requests().groupingBy { it }.eachCount().filterValues { it > 1 }
         assertEquals(emptyMap(), duplicated, "stations shared by several trains must be fetched once")
@@ -73,7 +72,7 @@ class ViaggiaTrenoTripsProviderTests {
         assertEquals(8, departures.size)
         val withoutRun = departures.single { it.run == null }
         assertEquals(Station("S00452", "Torino Lingotto"), withoutRun.destination, "resolved from the board's name")
-        assertEquals(LocalDateTime(2026, 1, 23, 21, 15), withoutRun.scheduledDeparture)
+        assertEquals(Instant.parse("2026-01-23T21:15:00Z"), withoutRun.scheduledDeparture)
     }
 
     @Test

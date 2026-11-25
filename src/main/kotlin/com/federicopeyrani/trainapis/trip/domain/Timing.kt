@@ -1,18 +1,15 @@
 package com.federicopeyrani.trainapis.trip.domain
 
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration
+import kotlin.time.Instant
 
 /**
- * Scheduled/expected/actual times of an event, all expressed in UTC.
+ * Scheduled/expected/actual times of an event.
  */
 data class Timing(
-    val scheduled: LocalDateTime,
-    val expected: LocalDateTime? = null,
-    val actual: LocalDateTime? = null,
+    val scheduled: Instant,
+    val expected: Instant? = null,
+    val actual: Instant? = null,
 ) {
 
     companion object {
@@ -20,9 +17,9 @@ data class Timing(
         /**
          * Timing of an event expected to happen [delay] after its [scheduled] time.
          */
-        fun delayed(scheduled: LocalDateTime, delay: Duration, actual: LocalDateTime?) = Timing(
+        fun delayed(scheduled: Instant, delay: Duration, actual: Instant?) = Timing(
             scheduled = scheduled,
-            expected = scheduled.toInstant(TimeZone.UTC).plus(delay).toLocalDateTime(TimeZone.UTC),
+            expected = scheduled + delay,
             actual = actual,
         )
     }

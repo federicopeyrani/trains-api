@@ -2,8 +2,8 @@ package com.federicopeyrani.trainapis.trip.domain
 
 import com.federicopeyrani.trainapis.trip.domain.TripFixtures.departure
 import com.federicopeyrani.trainapis.trip.domain.TripFixtures.run
-import kotlinx.datetime.LocalDateTime
 import kotlin.test.Test
+import kotlin.time.Instant
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
@@ -30,7 +30,7 @@ class DepartureTests {
         val trip = departure("A", run).toTrip(to = "C")
 
         assertEquals("C", trip.to.station.id)
-        assertEquals(LocalDateTime(2026, 1, 23, 10, 0), trip.to.arrivalTime?.scheduled)
+        assertEquals(Instant.parse("2026-01-23T10:00:00Z"), trip.to.arrivalTime?.scheduled)
         assertEquals(StopStatus.NOT_YET_ARRIVED, trip.to.status)
     }
 
@@ -39,7 +39,7 @@ class DepartureTests {
         val trip = departure("B", run).toTrip()
 
         assertEquals("B", trip.from.station.id)
-        assertEquals(LocalDateTime(2026, 1, 23, 9, 0), trip.from.departureTime?.scheduled)
+        assertEquals(Instant.parse("2026-01-23T09:00:00Z"), trip.from.departureTime?.scheduled)
         assertEquals(run.destination, trip.to)
     }
 
