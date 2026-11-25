@@ -9,6 +9,7 @@ import com.federicopeyrani.trainapis.trip.application.port.inbound.GetAllTripsUs
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetDeparturesUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetRunUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetTripsUseCase
+import com.federicopeyrani.trainapis.trip.domain.Trip as TripDomain
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import org.springframework.http.MediaType
@@ -21,10 +22,12 @@ import org.springframework.web.bind.annotation.RestController
 import kotlin.time.Instant
 
 /**
- * Trip searches answer `application/json` with a [TripSearch] (trips plus the count of unverified departures), which
- * the generated [TripsApi] maps. Their `text/event-stream` form ends with a `summary` event, so it has a different
- * shape than the generated method returns: it is mapped by hand here, and the generated mappings are narrowed to JSON
- * so the two never match the same request.
+ * JSON responses are complete lists, sorted by departure ([TripDomain.ByDeparture]); `text/event-stream` responses send
+ * each trip as soon as it is found, so they are in no particular order. Trip searches answer JSON with a [TripSearch]
+ * (trips plus the count of unverified departures), and their stream ends with a `summary` event.
+ *
+ * The two forms differ, but the generated [TripsApi] has one method per operation: the stream forms are mapped by hand
+ * here, and the generated mappings are narrowed to JSON so the two never match the same request.
  */
 @RestController
 class TripsController(
@@ -34,10 +37,15 @@ class TripsController(
     private val getRunUseCase: GetRunUseCase,
 ) : TripsApi {
 
-    override fun getDepartures(from: String, date: Instant?): ResponseEntity<Flow<Trip>> {
-        val departures = getDeparturesUseCase.getDepartures(StationId(from), date)
-        return ResponseEntity.ok(departures.map { it.toDto() })
-    }
+    @GetMapping(TripsApi.PATH_GET_DEPARTURES, produces = [MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_PROBLEM_JSON_VALUE])
+    override fun getDepartures(from: String, date: Instant?): ResponseEntity<Flow<Trip>> =
+        ResponseEntity.ok(departures(from, date).sortedByDeparture().map { it.toDto() })
+
+    @GetMapping(TripsApi.PATH_GET_DEPARTURES, produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
+    fun streamDepartures(
+        @PathVariable from: String,
+        @RequestParam(required = false) date: Instant?,
+    ): Flow<Trip> = departures(from, date).map { it.toDto() }
 
     @GetMapping(TripsApi.PATH_GET_TRIPS, produces = [MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_PROBLEM_JSON_VALUE])
     override suspend fun getTrips(from: String, to: String, date: Instant?): ResponseEntity<TripSearch> =
@@ -65,6 +73,8 @@ class TripsController(
         val run = getRunUseCase.getRun(runId)
         return ResponseEntity.ok(run.toDto())
     }
+
+    private fun departures(from: String, date: Instant?) = getDeparturesUseCase.getDepartures(StationId(from), date)
 
     private fun searchTrips(from: String, to: String, date: Instant?) =
         getTripsUseCase.getTrips(StationId(from), StationId(to), date)

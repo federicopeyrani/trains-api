@@ -23,6 +23,9 @@ import com.federicopeyrani.trainapis.trip.domain.Train
 import com.federicopeyrani.trainapis.trip.domain.Trip
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.jsonArray
 import kotlinx.coroutines.flow.asFlow
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -102,10 +105,10 @@ class TripsControllerTests(
         )
 
         /**
-         * A trip search finding [trips] and one departure that could not be checked, reported between them.
+         * A trip search finding [trips], latest first, and one departure that could not be checked, reported between them.
          */
         private val search = flowOf(
-            TripSearchResult.Match(trips[0]),
+            TripSearchResult.Match(trips[1]),
             TripSearchResult.Unverified(
                 Departure(
                     station = centrale,
@@ -115,7 +118,7 @@ class TripsControllerTests(
                     lastUpdate = at(21, 30),
                 ),
             ),
-            TripSearchResult.Match(trips[1]),
+            TripSearchResult.Match(trips[0]),
         )
     }
 
@@ -133,7 +136,7 @@ class TripsControllerTests(
         @Bean
         fun getDepartures(requests: Requests) = GetDeparturesUseCase { from, date ->
             requests += listOf(from, date)
-            if (from == StationId("S01700")) trips.asFlow() else emptyFlow()
+            if (from == StationId("S01700")) trips.reversed().asFlow() else emptyFlow()
         }
 
         @Bean
@@ -161,8 +164,10 @@ class TripsControllerTests(
 
     private fun expected(name: String) = javaClass.getResource("/expected/$name")!!.readText()
 
+    private fun String.reversedArray() = JsonArray(Json.parseToJsonElement(this).jsonArray.reversed()).toString()
+
     @Test
-    fun `encodes trips as JSON`() {
+    fun `encodes trips as JSON, sorted by departure`() {
         webTestClient.get().uri("/departures/S01700")
             .exchange()
             .expectStatus().isOk
@@ -179,7 +184,7 @@ class TripsControllerTests(
     }
 
     @Test
-    fun `streams trips as server-sent events with the same encoding`() {
+    fun `streams trips as server-sent events with the same encoding, as they are found`() {
         val events = webTestClient.get().uri("/departures/S01700")
             .accept(MediaType.TEXT_EVENT_STREAM)
             .exchange()
@@ -191,7 +196,7 @@ class TripsControllerTests(
             .block()!!
 
         val json = "[${events.joinToString(",")}]"
-        JsonAssert.comparator(JsonCompareMode.STRICT).assertIsMatch(expected("trips.json"), json)
+        JsonAssert.comparator(JsonCompareMode.STRICT).assertIsMatch(expected("trips.json").reversedArray(), json)
     }
 
     @Test
@@ -220,7 +225,7 @@ class TripsControllerTests(
         val (trips, summary) = events.dropLast(1) to events.last()
         assertEquals(listOf(null, null), trips.map { it.event() }, "trips are unnamed events")
         val json = "[${trips.joinToString(",") { it.data()!! }}]"
-        JsonAssert.comparator(JsonCompareMode.STRICT).assertIsMatch(expected("trips.json"), json)
+        JsonAssert.comparator(JsonCompareMode.STRICT).assertIsMatch(expected("trips.json").reversedArray(), json)
         assertEquals("summary", summary.event())
         JsonAssert.comparator(JsonCompareMode.STRICT).assertIsMatch("""{"unverifiedDepartures": 1}""", summary.data())
     }

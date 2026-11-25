@@ -5,6 +5,7 @@ import com.federicopeyrani.trainapis.shared.infrastructure.web.ApiJson
 import com.federicopeyrani.trainapis.trip.application.port.inbound.TripSearchResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.toList
 import org.springframework.http.codec.ServerSentEvent
 import com.federicopeyrani.trainapis.trip.domain.DestinationStop
 import com.federicopeyrani.trainapis.trip.domain.IntermediateStop
@@ -29,18 +30,18 @@ import com.federicopeyrani.trainapis.model.TripSearch as TripSearchDto
 import com.federicopeyrani.trainapis.model.TripSearchSummary as TripSearchSummaryDto
 
 /**
- * Collects a trip search into its JSON form.
+ * Collects a trip search into its JSON form, trips sorted by departure.
  */
 suspend fun Flow<TripSearchResult>.toDto(): TripSearchDto {
-    val trips = mutableListOf<TripDto>()
+    val trips = mutableListOf<Trip>()
     var unverified = 0
     collect {
         when (it) {
-            is TripSearchResult.Match -> trips += it.trip.toDto()
+            is TripSearchResult.Match -> trips += it.trip
             is TripSearchResult.Unverified -> unverified++
         }
     }
-    return TripSearchDto(unverifiedDepartures = unverified, trips = trips)
+    return TripSearchDto(unverifiedDepartures = unverified, trips = trips.sortedWith(Trip.ByDeparture).map { it.toDto() })
 }
 
 /**
@@ -57,6 +58,11 @@ fun Flow<TripSearchResult>.toServerSentEvents(): Flow<ServerSentEvent<String>> =
     val summary = TripSearchSummaryDto(unverifiedDepartures = unverified)
     emit(ServerSentEvent.builder(ApiJson.encodeToString(summary)).event("summary").build())
 }
+
+/**
+ * The trips of this flow sorted by departure, once all of them are known.
+ */
+fun Flow<Trip>.sortedByDeparture(): Flow<Trip> = flow { toList().sortedWith(Trip.ByDeparture).forEach { emit(it) } }
 
 fun Trip.toDto() = TripDto(
     from = from.toDto(),

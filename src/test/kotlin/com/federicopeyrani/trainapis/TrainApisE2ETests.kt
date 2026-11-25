@@ -103,6 +103,8 @@ class TrainApisE2ETests(
 
         assertEquals(7, departures.size, "the train to Lecco has neither run nor resolvable destination")
         assertTrue(departures.all { it.from.station.id == "S01700" && it.run != null })
+        val times = departures.map { it.from.departureTime!!.scheduled }
+        assertEquals(times.sorted(), times, "JSON is sorted by departure, whatever order the trains were fetched in")
         val toLingotto = departures.single { it.run?.train?.id == "7644" }
         assertEquals("Torino Lingotto", toLingotto.to.station.name)
         assertEquals("2026-01-23T21:15:00Z", toLingotto.from.departureTime?.scheduled.toString())

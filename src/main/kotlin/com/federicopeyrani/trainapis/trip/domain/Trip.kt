@@ -11,4 +11,14 @@ data class Trip(
     val lastUpdate: Instant,
     val lastUpdateFromProvider: Instant? = null,
     val run: Run? = null,
-)
+) {
+
+    companion object {
+
+        /**
+         * Earliest scheduled departure first, trips without a departure time last, then by train number.
+         */
+        val ByDeparture: Comparator<Trip> = compareBy<Trip, Instant?>(nullsLast()) { it.from.departureTime?.scheduled }
+            .thenBy { it.run?.train?.number?.value }
+    }
+}

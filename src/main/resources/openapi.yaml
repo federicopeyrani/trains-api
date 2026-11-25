@@ -57,7 +57,9 @@ paths:
             format: date-time
       responses:
         '200':
-          description: A list of trips departing from the specified station
+          description: |
+            Trips departing from the specified station. As `application/json`, sorted by scheduled departure; as
+            `text/event-stream`, each trip is sent as soon as it is known, in no particular order.
           content:
             application/json:
               schema:
@@ -107,10 +109,12 @@ paths:
       responses:
         '200':
           description: |
-            Trips between the specified stations. Departures whose run could not be checked are left out and only
-            counted in `unverifiedDepartures`: when it is not 0, some of them may also reach the destination.
+            Trips between the specified stations, sorted by scheduled departure. Departures whose run could not be
+            checked are left out and only counted in `unverifiedDepartures`: when it is not 0, some of them may also
+            reach the destination.
 
-            As `text/event-stream`, every trip is sent as an unnamed event with a `Trip` as data, followed by one final
+            As `text/event-stream`, every trip is sent as soon as it is known (in no particular order) as an unnamed
+            event with a `Trip` as data, followed by one final
             `summary` event whose data is a `TripSearchSummary`. A stream without the `summary` event is incomplete.
           content:
             application/json:
@@ -163,10 +167,12 @@ paths:
       responses:
         '200':
           description: |
-            Trips between the specified stations. Departures whose run could not be checked are left out and only
-            counted in `unverifiedDepartures`: when it is not 0, some of them may also reach the destination.
+            Trips between the specified stations, sorted by scheduled departure. Departures whose run could not be
+            checked are left out and only counted in `unverifiedDepartures`: when it is not 0, some of them may also
+            reach the destination.
 
-            As `text/event-stream`, every trip is sent as an unnamed event with a `Trip` as data, followed by one final
+            As `text/event-stream`, every trip is sent as soon as it is known (in no particular order) as an unnamed
+            event with a `Trip` as data, followed by one final
             `summary` event whose data is a `TripSearchSummary`. A stream without the `summary` event is incomplete.
           content:
             application/json:
