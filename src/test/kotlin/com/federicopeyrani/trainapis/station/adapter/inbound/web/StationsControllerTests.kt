@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest
 import org.springframework.context.annotation.Bean
+import org.springframework.http.HttpHeaders
 import org.springframework.test.json.JsonCompareMode
 import org.springframework.test.web.reactive.server.WebTestClient
 import kotlin.test.Test
@@ -60,5 +61,27 @@ class StationsControllerTests(
         webTestClient.get().uri("/stations")
             .exchange()
             .expectStatus().isBadRequest
+    }
+
+    // CORS compares the Origin with the request's own origin, so these requests need an absolute URI.
+
+    @Test
+    fun `allows browser pages from other origins`() {
+        webTestClient.get().uri("http://localhost/stations?query=torino")
+            .header(HttpHeaders.ORIGIN, "http://localhost:3000")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:3000")
+    }
+
+    @Test
+    fun `answers preflight requests for GET`() {
+        webTestClient.options().uri("http://localhost/stations?query=torino")
+            .header(HttpHeaders.ORIGIN, "http://localhost:3000")
+            .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET")
+            .exchange()
+            .expectStatus().isOk
+            .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:3000")
+            .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET")
     }
 }

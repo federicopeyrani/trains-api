@@ -27,6 +27,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ./gradlew clean build
 ```
 
+## Debug portal (`portal/`)
+
+A Bun + React + TypeScript web tool to search trips (`/trips/all`) and open runs (`/runs/{runId}`), with recent searches
+and runs in `localStorage`. It uses React Aria Components, and a client generated from `src/main/resources/openapi.yaml`
+(`openapi-typescript` types + `openapi-fetch`, no cache layer). See `portal/README.md`.
+
+```bash
+cd portal
+bun install
+bun run dev      # http://localhost:3000; calls the same host on port 8081 unless API_BASE_URL or the settings say otherwise
+bun run check    # oxfmt --check, oxlint, tsc (regenerates the client first), bun test
+```
+
+The browser calls the backend from another origin, so the backend allows CORS for `GET` (`CorsConfig`,
+`api.cors.allowed-origins`, default `*`). A change to `openapi.yaml` can break the portal: run `bun run check` in
+`portal/` too.
+
 ## Architecture
 
 This is a Kotlin/Spring Boot 4 WebFlux application that exposes a REST API for querying Italian train schedules. It wraps the ViaggiaTreno API (Trenitalia's unofficial API) behind a clean OpenAPI-defined interface.

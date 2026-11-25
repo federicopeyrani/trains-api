@@ -14,3 +14,4 @@ SETUP_SUMMARY.md
 *.http
 http-client.env.json
 compose.yaml
+portal

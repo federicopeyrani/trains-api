@@ -1,0 +1,33 @@
+{
+  "name": "trains-portal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "openapi-typescript ../src/main/resources/openapi.yaml -o src/api/schema.gen.ts",
+    "dev": "bun run generate && bun --hot server.ts",
+    "build": "bun run generate && rm -rf dist && bun build ./server.ts --target=bun --outdir dist --minify",
+    "start": "cd dist && NODE_ENV=production bun server.js",
+    "lint": "oxlint --deny-warnings",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "typecheck": "bun run generate && tsc --noEmit",
+    "test": "bun test",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun run test"
+  },
+  "dependencies": {
+    "@internationalized/date": "^3.12.4",
+    "openapi-fetch": "^0.17.0",
+    "react": "^19.3.1",
+    "react-aria-components": "^1.22.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.5",
+    "@types/react": "^19.3.3",
+    "@types/react-dom": "^19.3.0",
+    "openapi-typescript": "^7.13.0",
+    "oxfmt": "0.79.0",
+    "oxlint": "1.94.0",
+    "typescript": "5.9.3"
+  }
+}
