@@ -1,6 +1,7 @@
 package com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno
 
 import com.federicopeyrani.trainapis.shared.domain.Station
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.shared.domain.StationNotFoundException
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoProperties
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationsApiWrapper
@@ -52,9 +53,9 @@ class ViaggiaTrenoTripsProvider(
 
     private val log = log()
 
-    override fun getDepartures(from: String, date: Instant): Flow<Departure> = flow {
+    override fun getDepartures(from: StationId, date: Instant): Flow<Departure> = flow {
         val station = getStationByIdOrNull(from) ?: throw StationNotFoundException(from)
-        val (board, boardLastUpdate) = trainsApiWrapper.getDepartures(from, date)
+        val (board, boardLastUpdate) = trainsApiWrapper.getDepartures(from.value, date)
 
         board
             .asFlow()
@@ -68,8 +69,8 @@ class ViaggiaTrenoTripsProvider(
 
     override suspend fun getRun(runId: RunId): Run {
         val (train, trainLastUpdate) = trainsApiWrapper.getTrain(
-            from = runId.originStationId,
-            trainId = runId.trainNumber,
+            from = runId.originStationId.value,
+            trainId = runId.trainNumber.value,
             date = runId.departureDate,
         )
 
@@ -106,7 +107,7 @@ class ViaggiaTrenoTripsProvider(
      * Looks up all [ids] concurrently. Stations that cannot be resolved are left out (the mapper then falls back to
      * the stop's own name).
      */
-    private suspend fun resolveStations(ids: Collection<String>): Map<String, Station> = coroutineScope {
+    private suspend fun resolveStations(ids: Collection<StationId>): Map<StationId, Station> = coroutineScope {
         ids
             .map { id -> async { stationLookups.withPermit { orNull("station '$id'") { getStationByIdOrNull(id) } } } }
             .awaitAll()
@@ -130,11 +131,11 @@ class ViaggiaTrenoTripsProvider(
             .firstOrNull()
             ?: return null
 
-        return getStationByIdOrNull(result.id)
+        return getStationByIdOrNull(StationId(result.id))
     }
 
-    private suspend fun getStationByIdOrNull(stationId: String): Station? {
-        val result = stationApiWrapper.getStationDetails(stationId).data ?: return null
+    private suspend fun getStationByIdOrNull(stationId: StationId): Station? {
+        val result = stationApiWrapper.getStationDetails(stationId.value).data ?: return null
 
         return Station(
             id = stationId,

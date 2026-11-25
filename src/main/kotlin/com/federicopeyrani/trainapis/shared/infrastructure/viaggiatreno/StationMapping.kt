@@ -1,6 +1,7 @@
 package com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno
 
 import com.federicopeyrani.trainapis.shared.domain.Station
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.StazioneDettagliata
 
 /**
@@ -34,6 +35,6 @@ fun StazioneDettagliata.displayName() =
         ?: codStazione
 
 fun StazioneDettagliata.toStation() = Station(
-    id = codStazione,
+    id = StationId(codStazione),
     name = displayName(),
 )

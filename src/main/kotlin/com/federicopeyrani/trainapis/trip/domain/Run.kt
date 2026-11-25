@@ -1,5 +1,6 @@
 package com.federicopeyrani.trainapis.trip.domain
 
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import kotlin.time.Instant
 
 /**
@@ -23,7 +24,7 @@ data class Run(
     /**
      * Index of the first call at [stationId], or `-1` if the run does not call there.
      */
-    fun indexOf(stationId: String): Int {
+    fun indexOf(stationId: StationId): Int {
         if (origin.station.id == stationId) return 0
         val stop = stops.indexOfFirst { it.station.id == stationId }
         if (stop >= 0) return stop + 1
@@ -33,7 +34,7 @@ data class Run(
     /**
      * Whether a passenger can travel from [from] to [to] on this run, i.e. it calls at both, in that order.
      */
-    fun serves(from: String, to: String): Boolean {
+    fun serves(from: StationId, to: StationId): Boolean {
         val fromIndex = indexOf(from)
         return fromIndex >= 0 && indexOf(to) > fromIndex
     }

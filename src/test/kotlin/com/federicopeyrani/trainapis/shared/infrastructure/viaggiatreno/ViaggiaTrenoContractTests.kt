@@ -98,8 +98,8 @@ class ViaggiaTrenoContractTests {
         assertEquals(entry.numeroTreno, train.numeroTreno)
 
         val run = train.toRun(entry.dataPartenzaTreno, now, stations = emptyMap())
-        val calls = listOf(run.origin.station.id) + run.stops.map { it.station.id } + run.destination.station.id
-        assertEquals(entry.codOrigine, run.origin.station.id)
+        val calls = listOf(run.origin.station.id.value) + run.stops.map { it.station.id.value } + run.destination.station.id.value
+        assertEquals(entry.codOrigine, run.origin.station.id.value)
         assertTrue("S01700" in calls, "run ${run.id} calls at $calls")
         val scheduled = listOfNotNull(run.origin.departureTime?.scheduled) +
             run.stops.mapNotNull { it.departureTime?.scheduled ?: it.arrivalTime?.scheduled } +

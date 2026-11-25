@@ -1,5 +1,6 @@
 package com.federicopeyrani.trainapis.trip.domain
 
+import com.federicopeyrani.trainapis.trip.domain.TripFixtures.id
 import com.federicopeyrani.trainapis.trip.domain.TripFixtures.departure
 import com.federicopeyrani.trainapis.trip.domain.TripFixtures.run
 import kotlin.test.Test
@@ -18,18 +19,18 @@ class DepartureTests {
     fun `serves stations called at after the departure station`() {
         val fromB = departure("B", run)
 
-        assertTrue(fromB.serves("C"))
-        assertTrue(fromB.serves("D"))
-        assertFalse(fromB.serves("A"), "A is called at before B")
-        assertFalse(fromB.serves("Z"), "Z is not called at")
-        assertFalse(departure("B", run = null).serves("C"), "unknown runs never qualify")
+        assertTrue(fromB.serves(id("C")))
+        assertTrue(fromB.serves(id("D")))
+        assertFalse(fromB.serves(id("A")), "A is called at before B")
+        assertFalse(fromB.serves(id("Z")), "Z is not called at")
+        assertFalse(departure("B", run = null).serves(id("C")), "unknown runs never qualify")
     }
 
     @Test
     fun `trip to an intermediate stop uses that stop's arrival`() {
-        val trip = departure("A", run).toTrip(to = "C")
+        val trip = departure("A", run).toTrip(to = id("C"))
 
-        assertEquals("C", trip.to.station.id)
+        assertEquals("C", trip.to.station.id.value)
         assertEquals(Instant.parse("2026-01-23T10:00:00Z"), trip.to.arrivalTime?.scheduled)
         assertEquals(StopStatus.NOT_YET_ARRIVED, trip.to.status)
     }
@@ -38,7 +39,7 @@ class DepartureTests {
     fun `trip without destination ends at the run's destination`() {
         val trip = departure("B", run).toTrip()
 
-        assertEquals("B", trip.from.station.id)
+        assertEquals("B", trip.from.station.id.value)
         assertEquals(Instant.parse("2026-01-23T09:00:00Z"), trip.from.departureTime?.scheduled)
         assertEquals(run.destination, trip.to)
     }
@@ -47,7 +48,7 @@ class DepartureTests {
     fun `trip without run falls back to the board`() {
         val trip = departure("A", run = null).toTrip()
 
-        assertEquals("board-destination", trip.to.station.id)
+        assertEquals("board-destination", trip.to.station.id.value)
         assertNull(trip.from.status)
         assertNull(trip.to.arrivalTime)
     }

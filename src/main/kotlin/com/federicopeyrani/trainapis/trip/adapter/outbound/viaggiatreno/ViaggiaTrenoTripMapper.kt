@@ -1,6 +1,7 @@
 package com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno
 
 import com.federicopeyrani.trainapis.shared.domain.Station
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.AndamentoTreno
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.Fermata
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.PartenzeArrivi
@@ -14,6 +15,7 @@ import com.federicopeyrani.trainapis.trip.domain.RunId
 import com.federicopeyrani.trainapis.trip.domain.RunStatus
 import com.federicopeyrani.trainapis.trip.domain.Timing
 import com.federicopeyrani.trainapis.trip.domain.Train
+import com.federicopeyrani.trainapis.trip.domain.TrainNumber
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -45,23 +47,23 @@ object ViaggiaTrenoTripMapper {
     /**
      * Ids of every station this train calls at.
      */
-    fun AndamentoTreno.stationIds() = fermate.orEmpty().map { it.id }.distinct()
+    fun AndamentoTreno.stationIds() = fermate.orEmpty().map { StationId(it.id) }.distinct()
 
     /**
      * @param departureDate epoch millis of the run's departure day at midnight (provider time)
      * @param stations resolved stations by id (normally every id in [stationIds])
      */
-    fun AndamentoTreno.toRun(departureDate: Long, lastUpdate: Instant, stations: Map<String, Station>): Run {
+    fun AndamentoTreno.toRun(departureDate: Long, lastUpdate: Instant, stations: Map<StationId, Station>): Run {
         val calls = fermate?.takeIf { it.isNotEmpty() } ?: error("Train $numeroTreno has no stops")
         val first = calls.first()
         val last = calls.last()
 
-        fun Fermata.station() = stations[id] ?: Station(id = id, name = stazione.toStationDisplayName())
+        fun Fermata.station() = StationId(id).let { stations[it] ?: Station(id = it, name = stazione.toStationDisplayName()) }
 
         return Run(
-            id = RunId(originStationId = first.id, trainNumber = numeroTreno, departureDate = departureDate),
+            id = RunId(originStationId = StationId(first.id), trainNumber = TrainNumber(numeroTreno), departureDate = departureDate),
             train = Train(
-                id = numeroTreno.toString(),
+                number = TrainNumber(numeroTreno),
                 origin = first.station(),
                 destination = last.station(),
             ),

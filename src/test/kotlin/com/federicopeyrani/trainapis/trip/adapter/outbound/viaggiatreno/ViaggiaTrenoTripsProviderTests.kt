@@ -1,5 +1,7 @@
 package com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno
 
+import com.federicopeyrani.trainapis.trip.domain.TrainNumber
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.mockEngine
 import com.federicopeyrani.trainapis.shared.domain.ProviderUnavailableException
 import com.federicopeyrani.trainapis.shared.domain.Station
@@ -50,12 +52,12 @@ class ViaggiaTrenoTripsProviderTests {
     fun `maps every board entry with its run, fetching each upstream resource once`() = runTest {
         val upstream = Upstream()
 
-        val departures = upstream.provider.getDepartures("S01700", boardTime).toList()
+        val departures = upstream.provider.getDepartures(StationId("S01700"), boardTime).toList()
 
         assertEquals(8, departures.size)
-        val toLingotto = departures.single { it.run?.train?.id == "7644" }
-        assertEquals(Station("S01700", "Milano Centrale"), toLingotto.station)
-        assertEquals(Station("S00452", "Torino Lingotto"), toLingotto.destination)
+        val toLingotto = departures.single { it.run?.train?.number == TrainNumber(7644) }
+        assertEquals(Station(StationId("S01700"), "Milano Centrale"), toLingotto.station)
+        assertEquals(Station(StationId("S00452"), "Torino Lingotto"), toLingotto.destination)
         assertEquals(Instant.parse("2026-01-23T21:15:00Z"), toLingotto.scheduledDeparture)
         assertEquals(Instant.parse("2026-01-23T21:18:00Z"), toLingotto.run?.origin?.departureTime?.actual)
 
@@ -67,11 +69,11 @@ class ViaggiaTrenoTripsProviderTests {
     fun `keeps a departure without its run when the train cannot be fetched`() = runTest {
         val upstream = Upstream(mapOf(trainPath(7644) to HttpStatusCode.InternalServerError))
 
-        val departures = upstream.provider.getDepartures("S01700", boardTime).toList()
+        val departures = upstream.provider.getDepartures(StationId("S01700"), boardTime).toList()
 
         assertEquals(8, departures.size)
         val withoutRun = departures.single { it.run == null }
-        assertEquals(Station("S00452", "Torino Lingotto"), withoutRun.destination, "resolved from the board's name")
+        assertEquals(Station(StationId("S00452"), "Torino Lingotto"), withoutRun.destination, "resolved from the board's name")
         assertEquals(Instant.parse("2026-01-23T21:15:00Z"), withoutRun.scheduledDeparture)
     }
 
@@ -84,7 +86,7 @@ class ViaggiaTrenoTripsProviderTests {
             )
         )
 
-        val departures = upstream.provider.getDepartures("S01700", boardTime).toList()
+        val departures = upstream.provider.getDepartures(StationId("S01700"), boardTime).toList()
 
         assertEquals(7, departures.size)
         assertTrue(departures.none { it.destination.name.equals("Cremona", ignoreCase = true) })
@@ -98,7 +100,7 @@ class ViaggiaTrenoTripsProviderTests {
             )
         )
 
-        assertFailsWith<StationNotFoundException> { upstream.provider.getDepartures("S99999", boardTime).toList() }
+        assertFailsWith<StationNotFoundException> { upstream.provider.getDepartures(StationId("S99999"), boardTime).toList() }
         assertTrue(upstream.requests().none { it.startsWith("partenze/") })
     }
 
@@ -106,7 +108,7 @@ class ViaggiaTrenoTripsProviderTests {
     fun `reports the provider as unavailable when the board is rate limited`() = runTest {
         val upstream = Upstream(mapOf(boardPath to HttpStatusCode.Forbidden))
 
-        assertFailsWith<ProviderUnavailableException> { upstream.provider.getDepartures("S01700", boardTime).toList() }
+        assertFailsWith<ProviderUnavailableException> { upstream.provider.getDepartures(StationId("S01700"), boardTime).toList() }
     }
 
     @Test
@@ -114,7 +116,7 @@ class ViaggiaTrenoTripsProviderTests {
         val upstream = Upstream()
 
         listOf("2026-01-23T21:20:05Z", "2026-01-23T21:20:59Z").forEach {
-            upstream.provider.getDepartures("S01700", Instant.parse(it)).toList()
+            upstream.provider.getDepartures(StationId("S01700"), Instant.parse(it)).toList()
         }
 
         assertEquals(listOf(boardPath), upstream.requests().filter { it.startsWith("partenze/") })
@@ -126,7 +128,7 @@ class ViaggiaTrenoTripsProviderTests {
         val upstream = Upstream(mapOf(summerBoardPath to HttpStatusCode.Forbidden))
 
         assertFailsWith<ProviderUnavailableException> {
-            upstream.provider.getDepartures("S01700", Instant.parse("2026-07-23T20:20:00Z")).toList()
+            upstream.provider.getDepartures(StationId("S01700"), Instant.parse("2026-07-23T20:20:00Z")).toList()
         }
         assertEquals(listOf(summerBoardPath), upstream.requests().filter { it.startsWith("partenze/") })
     }
@@ -135,6 +137,6 @@ class ViaggiaTrenoTripsProviderTests {
     fun `run unknown to the provider is not found`() = runTest {
         val upstream = Upstream(mapOf(trainPath(1) to HttpStatusCode.NoContent))
 
-        assertFailsWith<RunNotFoundException> { upstream.provider.getRun(RunId("S01700", 1, 1769122800000)) }
+        assertFailsWith<RunNotFoundException> { upstream.provider.getRun(RunId(StationId("S01700"), TrainNumber(1), 1769122800000)) }
     }
 }

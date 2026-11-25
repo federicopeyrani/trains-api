@@ -1,5 +1,6 @@
 package com.federicopeyrani.trainapis.trip.application.port.outbound
 
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.trip.domain.Departure
 import com.federicopeyrani.trainapis.trip.domain.Run
 import com.federicopeyrani.trainapis.trip.domain.RunId
@@ -11,7 +12,7 @@ interface TripsProvider {
     /**
      * Departure board of station [from] at [date], each entry enriched with its run when available.
      */
-    fun getDepartures(from: String, date: Instant): Flow<Departure>
+    fun getDepartures(from: StationId, date: Instant): Flow<Departure>
 
     suspend fun getRun(runId: RunId): Run
 }

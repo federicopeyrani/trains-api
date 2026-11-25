@@ -1,5 +1,6 @@
 package com.federicopeyrani.trainapis.trip.application
 
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.shared.util.log
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetAllTripsUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetDeparturesUseCase
@@ -31,13 +32,13 @@ class TripService(
         private val log = log()
     }
 
-    override fun getDepartures(from: String, date: Instant?): Flow<Trip> {
+    override fun getDepartures(from: StationId, date: Instant?): Flow<Trip> {
         val at = date ?: clock.now()
         log.info("Getting departures from '$from' at date '$at'")
         return provider.getDepartures(from, at).map { it.toTrip() }
     }
 
-    override fun getTrips(from: String, to: String, date: Instant?): Flow<Trip> {
+    override fun getTrips(from: StationId, to: StationId, date: Instant?): Flow<Trip> {
         val at = date ?: clock.now()
         log.info("Getting trips from '$from' to '$to' at date '$at'")
         return provider.getDepartures(from, at)
@@ -48,7 +49,7 @@ class TripService(
     /**
      * Each origin's departure board is fetched once and matched against every destination.
      */
-    override fun getAllTrips(from: List<String>, to: List<String>, date: Instant?): Flow<Trip> {
+    override fun getAllTrips(from: List<StationId>, to: List<StationId>, date: Instant?): Flow<Trip> {
         val at = date ?: clock.now()
         val destinations = to.distinct()
         log.info("Getting all trips from $from to $destinations at date '$at'")

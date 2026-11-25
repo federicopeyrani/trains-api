@@ -44,13 +44,13 @@ fun Run.toDto() = RunDto(
 )
 
 private fun Train.toDto() = TrainDto(
-    id = id,
+    id = number.toString(),
     origin = origin.toDto(),
     destination = destination.toDto(),
 )
 
 private fun Station.toDto() = StationDto(
-    id = id,
+    id = id.value,
     name = name,
 )
 

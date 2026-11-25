@@ -1,6 +1,7 @@
 package com.federicopeyrani.trainapis.trip.adapter.inbound.web
 
 import com.federicopeyrani.trainapis.api.TripsApi
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.model.Run
 import com.federicopeyrani.trainapis.model.Trip
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetAllTripsUseCase
@@ -24,17 +25,17 @@ class TripsController(
 ) : TripsApi {
 
     override fun getDepartures(from: String, date: LocalDateTime?): ResponseEntity<Flow<Trip>> {
-        val departures = getDeparturesUseCase.getDepartures(from, date?.asUtcInstant())
+        val departures = getDeparturesUseCase.getDepartures(StationId(from), date?.asUtcInstant())
         return ResponseEntity.ok(departures.map { it.toDto() })
     }
 
     override fun getTrips(from: String, to: String, date: LocalDateTime?): ResponseEntity<Flow<Trip>> {
-        val trips = getTripsUseCase.getTrips(from, to, date?.asUtcInstant())
+        val trips = getTripsUseCase.getTrips(StationId(from), StationId(to), date?.asUtcInstant())
         return ResponseEntity.ok(trips.map { it.toDto() })
     }
 
     override fun getAllTrips(from: List<String>, to: List<String>, date: LocalDateTime?): ResponseEntity<Flow<Trip>> {
-        val trips = getAllTripsUseCase.getAllTrips(from, to, date?.asUtcInstant())
+        val trips = getAllTripsUseCase.getAllTrips(from.map(::StationId), to.map(::StationId), date?.asUtcInstant())
         return ResponseEntity.ok(trips.map { it.toDto() })
     }
 

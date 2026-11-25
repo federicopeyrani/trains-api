@@ -1,12 +1,14 @@
 package com.federicopeyrani.trainapis.trip.domain
 
+import com.federicopeyrani.trainapis.shared.domain.StationId
+
 /**
  * Identifies a run: the train [trainNumber] leaving [originStationId] on the day starting at [departureDate]
  * (epoch milliseconds of midnight, provider time). Serialized as `<origin>_<train>_<date>`.
  */
 data class RunId(
-    val originStationId: String,
-    val trainNumber: Int,
+    val originStationId: StationId,
+    val trainNumber: TrainNumber,
     val departureDate: Long,
 ) {
 
@@ -23,7 +25,7 @@ data class RunId(
 
             if (parts.size != 3 || origin == null || train == null || date == null) throw InvalidRunIdException(value)
 
-            return RunId(origin, train, date)
+            return RunId(StationId(origin), TrainNumber(train), date)
         }
     }
 

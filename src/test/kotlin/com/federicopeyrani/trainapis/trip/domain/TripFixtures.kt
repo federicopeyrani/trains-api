@@ -1,5 +1,6 @@
 package com.federicopeyrani.trainapis.trip.domain
 
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.shared.domain.Station
 import kotlin.time.Instant
 
@@ -10,7 +11,9 @@ object TripFixtures {
 
     val updatedAt: Instant = Instant.parse("2026-01-23T07:00:00Z")
 
-    fun station(id: String) = Station(id = id, name = "Station $id")
+    fun id(value: String) = StationId(value)
+
+    fun station(id: String) = Station(id = id(id), name = "Station $id")
 
     private fun at(hour: Int) = Instant.parse("2026-01-23T%02d:00:00Z".format(hour))
 
@@ -19,8 +22,8 @@ object TripFixtures {
         val lastHour = 8 + stations.lastIndex
 
         return Run(
-            id = RunId(stations.first(), trainNumber, 1769122800000),
-            train = Train(trainNumber.toString(), station(stations.first()), station(stations.last())),
+            id = RunId(id(stations.first()), TrainNumber(trainNumber), 1769122800000),
+            train = Train(TrainNumber(trainNumber), station(stations.first()), station(stations.last())),
             status = RunStatus.ON_TIME,
             origin = OriginStop.of(station(stations.first()), Timing(at(8))),
             destination = DestinationStop.of(station(stations.last()), Timing(at(lastHour))),

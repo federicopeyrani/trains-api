@@ -1,5 +1,7 @@
 package com.federicopeyrani.trainapis.trip.application
 
+import com.federicopeyrani.trainapis.trip.domain.TripFixtures.id
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.trip.application.port.outbound.TripsProvider
 import com.federicopeyrani.trainapis.trip.domain.Departure
 import com.federicopeyrani.trainapis.trip.domain.Run
@@ -20,11 +22,11 @@ import kotlin.time.Instant
  */
 class TripServiceRulesTests {
 
-    private class InMemoryTripsProvider(private val boards: Map<String, List<Departure>>) : TripsProvider {
+    private class InMemoryTripsProvider(private val boards: Map<StationId, List<Departure>>) : TripsProvider {
 
-        val boardRequests = mutableListOf<String>()
+        val boardRequests = mutableListOf<StationId>()
 
-        override fun getDepartures(from: String, date: Instant): Flow<Departure> {
+        override fun getDepartures(from: StationId, date: Instant): Flow<Departure> {
             boardRequests += from
             return boards[from].orEmpty().asFlow()
         }
@@ -39,8 +41,8 @@ class TripServiceRulesTests {
 
     private val provider = InMemoryTripsProvider(
         mapOf(
-            "B" to listOf(departure("B", northbound), departure("B", southbound), departure("B", run = null)),
-            "A" to listOf(departure("A", northbound)),
+            id("B") to listOf(departure("B", northbound), departure("B", southbound), departure("B", run = null)),
+            id("A") to listOf(departure("A", northbound)),
         )
     )
 
@@ -48,20 +50,20 @@ class TripServiceRulesTests {
 
     @Test
     fun `trips only include runs calling at the destination after the origin`() = runTest {
-        val trips = service.getTrips("B", "C", date = null).toList()
+        val trips = service.getTrips(id("B"), id("C"), date = null).toList()
 
-        assertEquals(listOf("1"), trips.map { it.run?.train?.id })
-        assertEquals("C", trips.single().to.station.id)
+        assertEquals(listOf("1"), trips.map { it.run?.train?.number?.toString() })
+        assertEquals("C", trips.single().to.station.id.value)
     }
 
     @Test
     fun `all trips fetch each origin board once`() = runTest {
-        val trips = service.getAllTrips(listOf("A", "B", "B"), listOf("A", "C"), date = null).toList()
+        val trips = service.getAllTrips(listOf("A", "B", "B").map(::id), listOf("A", "C").map(::id), date = null).toList()
 
-        assertEquals(listOf("A", "B"), provider.boardRequests.sorted())
+        assertEquals(listOf("A", "B"), provider.boardRequests.map { it.value }.sorted())
         assertEquals(
             setOf("A" to "C", "B" to "C", "B" to "A"),
-            trips.map { it.from.station.id to it.to.station.id }.toSet(),
+            trips.map { it.from.station.id.value to it.to.station.id.value }.toSet(),
         )
     }
 

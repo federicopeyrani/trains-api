@@ -1,5 +1,7 @@
 package com.federicopeyrani.trainapis.trip.adapter.inbound.web
 
+import com.federicopeyrani.trainapis.trip.domain.TrainNumber
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.shared.domain.ProviderUnavailableException
 import com.federicopeyrani.trainapis.shared.domain.Station
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetAllTripsUseCase
@@ -51,16 +53,16 @@ class TripsControllerTests(
 
         private fun at(hour: Int, minute: Int) = LocalDateTime(2026, 1, 23, hour, minute).toInstant(TimeZone.UTC)
 
-        private val centrale = Station("S01700", "Milano Centrale")
-        private val rogoredo = Station("S01820", "Milano Rogoredo")
-        private val lingotto = Station("S00452", "Torino Lingotto")
+        private val centrale = Station(StationId("S01700"), "Milano Centrale")
+        private val rogoredo = Station(StationId("S01820"), "Milano Rogoredo")
+        private val lingotto = Station(StationId("S00452"), "Torino Lingotto")
 
         /**
          * A delayed run that has left its origin and reached its intermediate stop: every optional field is set.
          */
         val run = Run(
-            id = RunId("S01700", 2185, 1769122800000),
-            train = Train("2185", centrale, lingotto),
+            id = RunId(StationId("S01700"), TrainNumber(2185), 1769122800000),
+            train = Train(TrainNumber(2185), centrale, lingotto),
             status = RunStatus.DELAYED,
             origin = OriginStop(centrale, StopStatus.DEPARTED, Timing(at(21, 15), at(21, 15), at(21, 18))),
             destination = DestinationStop(lingotto, StopStatus.NOT_YET_ARRIVED, Timing(at(23, 15), at(23, 20))),
@@ -109,7 +111,7 @@ class TripsControllerTests(
         @Bean
         fun getDepartures(requests: Requests) = GetDeparturesUseCase { from, date ->
             requests += listOf(from, date)
-            if (from == "S01700") trips.asFlow() else emptyFlow()
+            if (from == StationId("S01700")) trips.asFlow() else emptyFlow()
         }
 
         @Bean
@@ -175,11 +177,11 @@ class TripsControllerTests(
         val utc = Instant.parse("2026-01-23T21:15:00Z")
 
         listOf(
-            "/departures/S01700?date=2026-01-23T21:15:00" to listOf("S01700", utc),
-            "/departures/S01700?date=2026-01-23T21:15" to listOf("S01700", utc),
-            "/departures/S01700" to listOf("S01700", null),
-            "/trips/S01700/S00452?date=2026-01-23T21:15:00" to listOf("S01700", "S00452", utc),
-            "/trips/all?from=S01700&from=S01820&to=S00452" to listOf(listOf("S01700", "S01820"), listOf("S00452"), null),
+            "/departures/S01700?date=2026-01-23T21:15:00" to listOf(StationId("S01700"), utc),
+            "/departures/S01700?date=2026-01-23T21:15" to listOf(StationId("S01700"), utc),
+            "/departures/S01700" to listOf(StationId("S01700"), null),
+            "/trips/S01700/S00452?date=2026-01-23T21:15:00" to listOf(StationId("S01700"), StationId("S00452"), utc),
+            "/trips/all?from=S01700&from=S01820&to=S00452" to listOf(listOf(StationId("S01700"), StationId("S01820")), listOf(StationId("S00452")), null),
         ).forEach { (uri, arguments) ->
             requests.clear()
             webTestClient.get().uri(uri).exchange().expectStatus().isOk

@@ -1,5 +1,6 @@
 package com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno
 
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import com.federicopeyrani.trainapis.shared.domain.Station
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.AndamentoTreno
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.PartenzeArrivi
@@ -42,8 +43,8 @@ class ViaggiaTrenoTripMapperTests {
         val run = train.toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations)
 
         assertEquals("S01700_2185_1769122800000", run.id.toString())
-        assertEquals("S01700", run.origin.station.id)
-        assertEquals("S01915", run.destination.station.id)
+        assertEquals("S01700", run.origin.station.id.value)
+        assertEquals("S01915", run.destination.station.id.value)
         assertEquals(9, run.stops.size)
         assertEquals(RunStatus.ON_TIME, run.status)
         assertEquals(StopStatus.DEPARTED, run.origin.status)
@@ -52,7 +53,7 @@ class ViaggiaTrenoTripMapperTests {
 
     @Test
     fun `falls back to the stop name when a station was not resolved`() {
-        val run = train.toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations - "S01915")
+        val run = train.toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations - StationId("S01915"))
 
         assertEquals("Cremona", run.destination.station.name)
     }
@@ -78,7 +79,7 @@ class ViaggiaTrenoTripMapperTests {
             orarioPartenza = Instant.parse("2026-01-23T23:10:00Z").toEpochMilliseconds(),
             compOrarioPartenza = "00:10",
         )
-        val departure = entry.toDeparture(Station("S01700", "Milano Centrale"), run.destination.station, Instant.fromEpochSeconds(0), run = null)
+        val departure = entry.toDeparture(Station(StationId("S01700"), "Milano Centrale"), run.destination.station, Instant.fromEpochSeconds(0), run = null)
 
         assertEquals(Instant.parse("2026-01-23T23:10:00Z"), departure.scheduledDeparture)
     }

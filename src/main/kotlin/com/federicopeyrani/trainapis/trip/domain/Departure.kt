@@ -1,6 +1,7 @@
 package com.federicopeyrani.trainapis.trip.domain
 
 import com.federicopeyrani.trainapis.shared.domain.Station
+import com.federicopeyrani.trainapis.shared.domain.StationId
 import kotlin.time.Instant
 
 /**
@@ -23,7 +24,7 @@ data class Departure(
     /**
      * Whether this departure takes a passenger from [station] to [to]. Unknown runs never qualify.
      */
-    fun serves(to: String) = run?.serves(station.id, to) == true
+    fun serves(to: StationId) = run?.serves(station.id, to) == true
 
     /**
      * The journey from [station] to [to], or to the final destination when [to] is `null`.
@@ -31,7 +32,7 @@ data class Departure(
      * When the run is known, both ends come from the run's calls (live status and timings); otherwise only the
      * board's scheduled times are available.
      */
-    fun toTrip(to: String? = null): Trip {
+    fun toTrip(to: StationId? = null): Trip {
         val fromIndex = run?.indexOf(station.id)?.takeIf { it >= 0 }
         val toIndex = if (to == null) null else run?.indexOf(to)?.takeIf { it >= 0 }
 

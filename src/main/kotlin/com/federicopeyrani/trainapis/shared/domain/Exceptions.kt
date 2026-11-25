@@ -21,4 +21,4 @@ open class NotFoundException(message: String) : DomainException(message)
  */
 open class ProviderUnavailableException(message: String, cause: Throwable? = null) : DomainException(message, cause)
 
-class StationNotFoundException(stationId: String) : NotFoundException("Station '$stationId' not found")
+class StationNotFoundException(stationId: StationId) : NotFoundException("Station '$stationId' not found")
