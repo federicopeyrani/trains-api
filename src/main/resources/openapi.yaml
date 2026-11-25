@@ -9,7 +9,7 @@ paths:
 
   /stations:
     get:
-      summary: Get all stations
+      summary: Search stations by name
       operationId: getStations
       tags: [stations]
       parameters:
@@ -20,13 +20,17 @@ paths:
             type: string
       responses:
         '200':
-          description: A list of all stations
+          description: Stations whose name matches the query (empty when the query is blank)
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/StationDetails'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
 
   /departures/{from}:
     get:
@@ -60,6 +64,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
 
   /trips/{from}/{to}:
     get:
@@ -98,6 +108,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
 
   /trips/all:
     get:
@@ -140,6 +156,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Trip'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
 
   /runs/{runId}:
     get:
@@ -159,8 +181,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Run'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '503':
+          $ref: '#/components/responses/ProviderUnavailable'
+
 components:
+  responses:
+    BadRequest:
+      description: The request is malformed (missing or invalid parameter, invalid run id)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: A requested station or run does not exist
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ProviderUnavailable:
+      description: The data provider cannot serve the request right now (rate limiting, outage); retry later
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
   schemas:
+    Problem:
+      description: RFC 9457 problem details
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
     Station:
       type: object
       required:
@@ -195,7 +257,6 @@ components:
       required:
         - from
         - to
-        - status
         - lastUpdate
       properties:
         from:
@@ -213,8 +274,6 @@ components:
       type: object
       required:
         - id
-        - originDepartureTime
-        - destinationArrivalTime
         - train
         - status
         - origin
@@ -243,6 +302,7 @@ components:
     RunId:
       type: string
     Timing:
+      description: Times of an event. Like every date-time of this API, they are in UTC and carry no offset (e.g. `2026-01-23T21:15`).
       type: object
       required:
         - scheduled
@@ -307,6 +367,7 @@ components:
         - DELAYED
         - CANCELLED
     LastUpdated:
+      description: When the data was last refreshed, in UTC without offset.
       type: string
       format: date-time
     Train:
