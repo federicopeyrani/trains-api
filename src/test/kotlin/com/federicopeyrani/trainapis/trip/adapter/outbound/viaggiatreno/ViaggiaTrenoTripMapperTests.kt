@@ -64,6 +64,17 @@ class ViaggiaTrenoTripMapperTests {
     }
 
     @Test
+    fun `marks cancelled stops and ends the train at its last served stop`() {
+        val calls = train.fermate!!
+        val cutShort = train.copy(fermate = calls.dropLast(1) + calls.last().copy(actualFermataType = 3))
+        val run = cutShort.toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations)
+
+        assertEquals(StopStatus.CANCELLED, run.destination.status)
+        assertEquals(run.stops.last().station, run.train.destination, "the last stop still served")
+        assertEquals(-1, run.indexOf(run.destination.station.id), "the train no longer calls at its cancelled terminus")
+    }
+
+    @Test
     fun `falls back to the stop name when a station was not resolved`() {
         val run = train.toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations - StationId("S01915"))
 

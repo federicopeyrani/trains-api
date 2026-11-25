@@ -13,9 +13,13 @@ data class OriginStop(
         /**
          * Origin stop whose status follows from whether the train has actually departed.
          */
-        fun of(station: Station, departureTime: Timing?) = OriginStop(
+        fun of(station: Station, departureTime: Timing?, cancelled: Boolean = false) = OriginStop(
             station = station,
-            status = if (departureTime?.actual != null) StopStatus.DEPARTED else StopStatus.NOT_YET_DEPARTED,
+            status = when {
+                cancelled -> StopStatus.CANCELLED
+                departureTime?.actual != null -> StopStatus.DEPARTED
+                else -> StopStatus.NOT_YET_DEPARTED
+            },
             departureTime = departureTime,
         )
     }
@@ -32,9 +36,13 @@ data class DestinationStop(
         /**
          * Destination stop whose status follows from whether the train has actually arrived.
          */
-        fun of(station: Station, arrivalTime: Timing?) = DestinationStop(
+        fun of(station: Station, arrivalTime: Timing?, cancelled: Boolean = false) = DestinationStop(
             station = station,
-            status = if (arrivalTime?.actual != null) StopStatus.ARRIVED else StopStatus.NOT_YET_ARRIVED,
+            status = when {
+                cancelled -> StopStatus.CANCELLED
+                arrivalTime?.actual != null -> StopStatus.ARRIVED
+                else -> StopStatus.NOT_YET_ARRIVED
+            },
             arrivalTime = arrivalTime,
         )
     }
@@ -52,9 +60,10 @@ data class IntermediateStop(
         /**
          * Intermediate stop whose status follows from the actual arrival/departure times.
          */
-        fun of(station: Station, arrivalTime: Timing?, departureTime: Timing?) = IntermediateStop(
+        fun of(station: Station, arrivalTime: Timing?, departureTime: Timing?, cancelled: Boolean = false) = IntermediateStop(
             station = station,
             status = when {
+                cancelled -> StopStatus.CANCELLED
                 departureTime?.actual != null -> StopStatus.DEPARTED
                 arrivalTime?.actual != null -> StopStatus.ARRIVED
                 else -> StopStatus.NOT_YET_ARRIVED

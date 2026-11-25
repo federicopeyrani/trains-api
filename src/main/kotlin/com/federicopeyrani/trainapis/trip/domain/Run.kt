@@ -1,5 +1,6 @@
 package com.federicopeyrani.trainapis.trip.domain
 
+import com.federicopeyrani.trainapis.shared.domain.Station
 import com.federicopeyrani.trainapis.shared.domain.StationId
 import kotlin.time.Instant
 
@@ -22,13 +23,16 @@ data class Run(
     private val destinationIndex get() = stops.size + 1
 
     /**
-     * Index of the first call at [stationId], or `-1` if the run does not call there.
+     * Index of the first call at [stationId], or `-1` if the run does not call there. Cancelled calls do not count: the
+     * train does not stop there.
      */
     fun indexOf(stationId: StationId): Int {
-        if (origin.station.id == stationId) return 0
-        val stop = stops.indexOfFirst { it.station.id == stationId }
+        fun callsAt(station: Station, status: StopStatus?) = station.id == stationId && status != StopStatus.CANCELLED
+
+        if (callsAt(origin.station, origin.status)) return 0
+        val stop = stops.indexOfFirst { callsAt(it.station, it.status) }
         if (stop >= 0) return stop + 1
-        return if (destination.station.id == stationId) destinationIndex else -1
+        return if (callsAt(destination.station, destination.status)) destinationIndex else -1
     }
 
     /**

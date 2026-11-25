@@ -124,6 +124,7 @@ private fun StopStatus.toDto() = when (this) {
     StopStatus.ARRIVED -> StopStatusDto.ARRIVED
     StopStatus.DEPARTED -> StopStatusDto.DEPARTED
     StopStatus.NOT_YET_DEPARTED -> StopStatusDto.NOT_YET_DEPARTED
+    StopStatus.CANCELLED -> StopStatusDto.CANCELLED
 }
 
 private fun RunStatus.toDto() = when (this) {

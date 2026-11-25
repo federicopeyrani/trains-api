@@ -51,16 +51,17 @@ The per-request `regione` + `dettaglioStazione` lookups, cached for 60 minutes, 
 
 Never observed: no `provvedimento` 2/3 and no `tipoTreno` PP/SI/SF/DV, and `fermateSoppresse` was always empty.
 
-The site's code treats a stop with `actualFermataType == 3` as cancelled. It skips such a stop when picking the last
-stop, and draws it red and not clickable. `actualFermataType` was only ever 0 or 1 in practice.
+Implemented from the ViaggiaTreno site's code, which treats a stop with `actualFermataType == 3` as cancelled:
+- such a stop gets status `CANCELLED`;
+- the run does not serve it, as origin or as destination;
+- the train's destination is its last stop still served.
 
-**Look at:** a partially cancelled or diverted train, when there is one (strikes, works). Check:
-- whether `fermate` keeps the cancelled stops, marked 3;
-- what `provvedimento`/`tipoTreno` are;
-- what `subTitle` says.
+**Still to confirm,** on a partially cancelled or diverted train (strikes, works):
+- that `fermate` keeps the cancelled stops, marked 3;
+- what `provvedimento`/`tipoTreno`/`subTitle` say, and whether the run should get a status such as
+  `PARTIALLY_CANCELLED` or `DIVERTED`.
 
-**Then:** exclude cancelled stops from `Run.serves` (a train that skips the destination does not serve it), and
-possibly add `PARTIALLY_CANCELLED` / `DIVERTED` to the public `Status`.
+Record that response as a fixture and pin it with a contract test.
 
 ### B. Rate limit budget
 

@@ -411,6 +411,7 @@ components:
         - ARRIVED
         - DEPARTED
         - NOT_YET_DEPARTED
+        - CANCELLED
     Status:
       type: string
       enum:

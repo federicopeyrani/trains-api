@@ -26,6 +26,17 @@ class DepartureTests {
     }
 
     @Test
+    fun `cancelled stops are not served`() {
+        val partiallyCancelled = run.copy(
+            stops = run.stops.map { if (it.station.id == id("C")) it.copy(status = StopStatus.CANCELLED) else it },
+        )
+
+        assertEquals(Serves.NO, departure("B", partiallyCancelled).serves(id("C")), "the train skips C")
+        assertEquals(Serves.YES, departure("B", partiallyCancelled).serves(id("D")))
+        assertEquals(Serves.NO, departure("C", partiallyCancelled).serves(id("D")), "nobody boards at C")
+    }
+
+    @Test
     fun `trip to an intermediate stop uses that stop's arrival`() {
         val trip = departure("A", run).toTrip(id("C"))
 

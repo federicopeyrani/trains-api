@@ -50,16 +50,19 @@ object ViaggiaTrenoTripMapper {
             train = Train(
                 number = TrainNumber(numeroTreno),
                 origin = first.station(),
-                destination = last.station(),
+                // As the ViaggiaTreno site shows it: the last stop still served
+                destination = (calls.lastOrNull { !it.isCancelled() } ?: last).station(),
             ),
             status = status(),
             origin = OriginStop.of(
                 station = first.station(),
                 departureTime = timing(first.partenzaTeorica ?: orarioPartenza, first.partenzaReale, ritardo),
+                cancelled = first.isCancelled(),
             ),
             destination = DestinationStop.of(
                 station = last.station(),
                 arrivalTime = timing(last.arrivoTeorico ?: orarioArrivo, last.arrivoReale, ritardo),
+                cancelled = last.isCancelled(),
             ),
             stops = calls.drop(1).dropLast(1).map { it.toIntermediateStop(it.station(), trainDelay = ritardo) },
             lastUpdate = lastUpdate,
@@ -92,7 +95,14 @@ object ViaggiaTrenoTripMapper {
         station = station,
         arrivalTime = arrivoTeorico?.let { timing(it, arrivoReale, trainDelay) },
         departureTime = partenzaTeorica?.let { timing(it, partenzaReale, trainDelay) },
+        cancelled = isCancelled(),
     )
+
+    /**
+     * A stop the train no longer calls at. Taken from the ViaggiaTreno site's code (`actualFermataType` 3); not yet
+     * observed in a response.
+     */
+    private fun Fermata.isCancelled() = actualFermataType == 3
 
     /**
      * Times of an event at a stop, as the ViaggiaTreno site shows them: [scheduled] from the stop itself, and until the
