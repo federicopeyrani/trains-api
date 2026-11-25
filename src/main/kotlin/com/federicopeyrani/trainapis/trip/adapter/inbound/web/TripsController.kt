@@ -11,9 +11,6 @@ import com.federicopeyrani.trainapis.trip.application.port.inbound.GetRunUseCase
 import com.federicopeyrani.trainapis.trip.application.port.inbound.GetTripsUseCase
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toInstant
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.http.codec.ServerSentEvent
@@ -21,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import kotlin.time.Instant
 
 /**
  * Trip searches answer `application/json` with a [TripSearch] (trips plus the count of unverified departures), which
@@ -36,31 +34,31 @@ class TripsController(
     private val getRunUseCase: GetRunUseCase,
 ) : TripsApi {
 
-    override fun getDepartures(from: String, date: LocalDateTime?): ResponseEntity<Flow<Trip>> {
-        val departures = getDeparturesUseCase.getDepartures(StationId(from), date?.asUtcInstant())
+    override fun getDepartures(from: String, date: Instant?): ResponseEntity<Flow<Trip>> {
+        val departures = getDeparturesUseCase.getDepartures(StationId(from), date)
         return ResponseEntity.ok(departures.map { it.toDto() })
     }
 
     @GetMapping(TripsApi.PATH_GET_TRIPS, produces = [MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_PROBLEM_JSON_VALUE])
-    override suspend fun getTrips(from: String, to: String, date: LocalDateTime?): ResponseEntity<TripSearch> =
+    override suspend fun getTrips(from: String, to: String, date: Instant?): ResponseEntity<TripSearch> =
         ResponseEntity.ok(searchTrips(from, to, date).toDto())
 
     @GetMapping(TripsApi.PATH_GET_TRIPS, produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun streamTrips(
         @PathVariable from: String,
         @PathVariable to: String,
-        @RequestParam(required = false) date: LocalDateTime?,
+        @RequestParam(required = false) date: Instant?,
     ): Flow<ServerSentEvent<String>> = searchTrips(from, to, date).toServerSentEvents()
 
     @GetMapping(TripsApi.PATH_GET_ALL_TRIPS, produces = [MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_PROBLEM_JSON_VALUE])
-    override suspend fun getAllTrips(from: List<String>, to: List<String>, date: LocalDateTime?): ResponseEntity<TripSearch> =
+    override suspend fun getAllTrips(from: List<String>, to: List<String>, date: Instant?): ResponseEntity<TripSearch> =
         ResponseEntity.ok(searchAllTrips(from, to, date).toDto())
 
     @GetMapping(TripsApi.PATH_GET_ALL_TRIPS, produces = [MediaType.TEXT_EVENT_STREAM_VALUE])
     fun streamAllTrips(
         @RequestParam from: List<String>,
         @RequestParam to: List<String>,
-        @RequestParam(required = false) date: LocalDateTime?,
+        @RequestParam(required = false) date: Instant?,
     ): Flow<ServerSentEvent<String>> = searchAllTrips(from, to, date).toServerSentEvents()
 
     override suspend fun getRun(runId: String): ResponseEntity<Run> {
@@ -68,14 +66,9 @@ class TripsController(
         return ResponseEntity.ok(run.toDto())
     }
 
-    private fun searchTrips(from: String, to: String, date: LocalDateTime?) =
-        getTripsUseCase.getTrips(StationId(from), StationId(to), date?.asUtcInstant())
+    private fun searchTrips(from: String, to: String, date: Instant?) =
+        getTripsUseCase.getTrips(StationId(from), StationId(to), date)
 
-    private fun searchAllTrips(from: List<String>, to: List<String>, date: LocalDateTime?) =
-        getAllTripsUseCase.getAllTrips(from.map(::StationId), to.map(::StationId), date?.asUtcInstant())
-
-    /**
-     * Request dates carry no offset; like every date returned by the API, they are interpreted as UTC.
-     */
-    private fun LocalDateTime.asUtcInstant() = toInstant(TimeZone.UTC)
+    private fun searchAllTrips(from: List<String>, to: List<String>, date: Instant?) =
+        getAllTripsUseCase.getAllTrips(from.map(::StationId), to.map(::StationId), date)
 }

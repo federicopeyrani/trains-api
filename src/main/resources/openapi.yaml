@@ -47,7 +47,7 @@ paths:
           in: query
           required: false
           description: |
-            Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
+            Departure time to search from, as an RFC 3339 date-time (e.g. `2026-01-23T21:15:00Z` or `2026-01-23T22:15:00+01:00`). A date-time without offset is read as UTC. Defaults to now.
 
             Results come from the provider's live departure board around that time: trains scheduled from about 15
             minutes before to about 105 minutes after it, minus those that left the station a while ago. Earlier times
@@ -96,7 +96,7 @@ paths:
           in: query
           required: false
           description: |
-            Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
+            Departure time to search from, as an RFC 3339 date-time (e.g. `2026-01-23T21:15:00Z` or `2026-01-23T22:15:00+01:00`). A date-time without offset is read as UTC. Defaults to now.
 
             Results come from the provider's live departure board around that time: trains scheduled from about 15
             minutes before to about 105 minutes after it, minus those that left the station a while ago. Earlier times
@@ -152,7 +152,7 @@ paths:
           in: query
           required: false
           description: |
-            Departure time to search from, in UTC without offset (e.g. `2026-01-23T21:15:00`). Defaults to now.
+            Departure time to search from, as an RFC 3339 date-time (e.g. `2026-01-23T21:15:00Z` or `2026-01-23T22:15:00+01:00`). A date-time without offset is read as UTC. Defaults to now.
 
             Results come from the provider's live departure board around that time: trains scheduled from about 15
             minutes before to about 105 minutes after it, minus those that left the station a while ago. Earlier times
@@ -287,7 +287,7 @@ components:
         lastUpdate:
           $ref: '#/components/schemas/LastUpdated'
         lastUpdateFromProvider:
-          description: When the provider last detected the train's position, in UTC without offset. Absent before departure.
+          description: When the provider last detected the train's position. Absent before departure.
           $ref: '#/components/schemas/LastUpdated'
         run:
           $ref: '#/components/schemas/Run'
@@ -342,12 +342,12 @@ components:
         lastUpdate:
           $ref: '#/components/schemas/LastUpdated'
         lastUpdateFromProvider:
-          description: When the provider last detected the train's position, in UTC without offset. Absent before departure.
+          description: When the provider last detected the train's position. Absent before departure.
           $ref: '#/components/schemas/LastUpdated'
     RunId:
       type: string
     Timing:
-      description: Times of an event. Like every date-time of this API, they are in UTC and carry no offset (e.g. `2026-01-23T21:15`).
+      description: Times of an event. Like every date-time of this API, they are RFC 3339 instants in UTC (e.g. `2026-01-23T21:15:00Z`).
       type: object
       required:
         - scheduled
@@ -412,7 +412,7 @@ components:
         - DELAYED
         - CANCELLED
     LastUpdated:
-      description: When the data was last refreshed, in UTC without offset.
+      description: When the data was last refreshed.
       type: string
       format: date-time
     Train:

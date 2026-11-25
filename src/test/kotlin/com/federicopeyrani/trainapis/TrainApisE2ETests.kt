@@ -105,7 +105,7 @@ class TrainApisE2ETests(
         assertTrue(departures.all { it.from.station.id == "S01700" && it.run != null })
         val toLingotto = departures.single { it.run?.train?.id == "7644" }
         assertEquals("Torino Lingotto", toLingotto.to.station.name)
-        assertEquals("2026-01-23T21:15", toLingotto.from.departureTime?.scheduled.toString())
+        assertEquals("2026-01-23T21:15:00Z", toLingotto.from.departureTime?.scheduled.toString())
 
         assertEquals(requests.distinct(), requests, "each upstream resource is fetched once per request")
     }

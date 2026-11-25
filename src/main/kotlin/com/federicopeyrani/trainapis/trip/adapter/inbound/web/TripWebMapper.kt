@@ -15,9 +15,6 @@ import com.federicopeyrani.trainapis.trip.domain.StopStatus
 import com.federicopeyrani.trainapis.trip.domain.Timing
 import com.federicopeyrani.trainapis.trip.domain.Train
 import com.federicopeyrani.trainapis.trip.domain.Trip
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Instant
 import com.federicopeyrani.trainapis.model.DestinationStop as DestinationStopDto
 import com.federicopeyrani.trainapis.model.IntermediateStop as IntermediateStopDto
 import com.federicopeyrani.trainapis.model.OriginStop as OriginStopDto
@@ -64,8 +61,8 @@ fun Flow<TripSearchResult>.toServerSentEvents(): Flow<ServerSentEvent<String>> =
 fun Trip.toDto() = TripDto(
     from = from.toDto(),
     to = to.toDto(),
-    lastUpdate = lastUpdate.asUtc(),
-    lastUpdateFromProvider = lastUpdateFromProvider?.asUtc(),
+    lastUpdate = lastUpdate,
+    lastUpdateFromProvider = lastUpdateFromProvider,
     run = run?.toDto(),
 )
 
@@ -76,8 +73,8 @@ fun Run.toDto() = RunDto(
     origin = origin.toDto(),
     destination = destination.toDto(),
     stops = stops.map { it.toDto() },
-    lastUpdate = lastUpdate.asUtc(),
-    lastUpdateFromProvider = lastUpdateFromProvider?.asUtc(),
+    lastUpdate = lastUpdate,
+    lastUpdateFromProvider = lastUpdateFromProvider,
 )
 
 private fun Train.toDto() = TrainDto(
@@ -111,9 +108,9 @@ private fun IntermediateStop.toDto() = IntermediateStopDto(
 )
 
 private fun Timing.toDto() = TimingDto(
-    scheduled = scheduled.asUtc(),
-    expected = expected?.asUtc(),
-    actual = actual?.asUtc(),
+    scheduled = scheduled,
+    expected = expected,
+    actual = actual,
 )
 
 private fun StopStatus.toDto() = when (this) {
@@ -128,8 +125,3 @@ private fun RunStatus.toDto() = when (this) {
     RunStatus.DELAYED -> StatusDto.DELAYED
     RunStatus.CANCELLED -> StatusDto.CANCELLED
 }
-
-/**
- * The API exposes times in UTC without offset.
- */
-private fun Instant.asUtc() = toLocalDateTime(TimeZone.UTC)

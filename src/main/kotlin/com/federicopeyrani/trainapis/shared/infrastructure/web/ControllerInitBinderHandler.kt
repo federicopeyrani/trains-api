@@ -1,6 +1,6 @@
 package com.federicopeyrani.trainapis.shared.infrastructure.web
 
-import kotlinx.datetime.LocalDateTime
+import kotlin.time.Instant
 import org.springframework.web.bind.WebDataBinder
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.InitBinder
@@ -14,7 +14,7 @@ class ControllerInitBinderHandler {
 
     @InitBinder
     fun initBinder(binder: WebDataBinder) = binder.run {
-        registerCustomEditor(LocalDateTime::class.java, LocalDateTimePropertyEditorSupport)
+        registerCustomEditor(Instant::class.java, InstantPropertyEditor)
     }
 }
 

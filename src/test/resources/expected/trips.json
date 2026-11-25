@@ -7,8 +7,8 @@
       },
       "status": "NOT_YET_DEPARTED",
       "departureTime": {
-        "scheduled": "2026-01-23T21:27",
-        "expected": "2026-01-23T21:30"
+        "scheduled": "2026-01-23T21:27:00Z",
+        "expected": "2026-01-23T21:30:00Z"
       }
     },
     "to": {
@@ -18,12 +18,12 @@
       },
       "status": "NOT_YET_ARRIVED",
       "arrivalTime": {
-        "scheduled": "2026-01-23T23:15",
-        "expected": "2026-01-23T23:20"
+        "scheduled": "2026-01-23T23:15:00Z",
+        "expected": "2026-01-23T23:20:00Z"
       }
     },
-    "lastUpdate": "2026-01-23T21:30",
-    "lastUpdateFromProvider": "2026-01-23T21:29",
+    "lastUpdate": "2026-01-23T21:30:00Z",
+    "lastUpdateFromProvider": "2026-01-23T21:29:00Z",
     "run": {
       "id": "S01700_2185_1769122800000",
       "train": {
@@ -45,9 +45,9 @@
         },
         "status": "DEPARTED",
         "departureTime": {
-          "scheduled": "2026-01-23T21:15",
-          "expected": "2026-01-23T21:15",
-          "actual": "2026-01-23T21:18"
+          "scheduled": "2026-01-23T21:15:00Z",
+          "expected": "2026-01-23T21:15:00Z",
+          "actual": "2026-01-23T21:18:00Z"
         }
       },
       "destination": {
@@ -57,8 +57,8 @@
         },
         "status": "NOT_YET_ARRIVED",
         "arrivalTime": {
-          "scheduled": "2026-01-23T23:15",
-          "expected": "2026-01-23T23:20"
+          "scheduled": "2026-01-23T23:15:00Z",
+          "expected": "2026-01-23T23:20:00Z"
         }
       },
       "stops": [
@@ -69,18 +69,18 @@
           },
           "status": "ARRIVED",
           "arrivalTime": {
-            "scheduled": "2026-01-23T21:25",
-            "expected": "2026-01-23T21:28",
-            "actual": "2026-01-23T21:29"
+            "scheduled": "2026-01-23T21:25:00Z",
+            "expected": "2026-01-23T21:28:00Z",
+            "actual": "2026-01-23T21:29:00Z"
           },
           "departureTime": {
-            "scheduled": "2026-01-23T21:27",
-            "expected": "2026-01-23T21:30"
+            "scheduled": "2026-01-23T21:27:00Z",
+            "expected": "2026-01-23T21:30:00Z"
           }
         }
       ],
-      "lastUpdate": "2026-01-23T21:30",
-      "lastUpdateFromProvider": "2026-01-23T21:29"
+      "lastUpdate": "2026-01-23T21:30:00Z",
+      "lastUpdateFromProvider": "2026-01-23T21:29:00Z"
     }
   },
   {
@@ -90,7 +90,7 @@
         "name": "Milano Centrale"
       },
       "departureTime": {
-        "scheduled": "2026-01-23T22:15"
+        "scheduled": "2026-01-23T22:15:00Z"
       }
     },
     "to": {
@@ -99,9 +99,9 @@
         "name": "Torino Lingotto"
       },
       "arrivalTime": {
-        "scheduled": "2026-01-23T23:15"
+        "scheduled": "2026-01-23T23:15:00Z"
       }
     },
-    "lastUpdate": "2026-01-23T21:30"
+    "lastUpdate": "2026-01-23T21:30:00Z"
   }
 ]

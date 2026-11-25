@@ -109,10 +109,10 @@ tasks.named("openApiGenerate", GenerateTask::class) {
         "additionalModelTypeAnnotations" to "@kotlinx.serialization.Serializable",
     )
     typeMappings = mapOf(
-        "DateTime" to "LocalDateTime"
+        "DateTime" to "Instant"
     )
     importMappings = mapOf(
-        "LocalDateTime" to "kotlinx.datetime.LocalDateTime"
+        "Instant" to "kotlin.time.Instant"
     )
 }
 

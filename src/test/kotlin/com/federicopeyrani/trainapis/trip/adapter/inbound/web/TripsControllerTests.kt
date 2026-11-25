@@ -39,6 +39,7 @@ import org.springframework.test.json.JsonAssert
 import org.springframework.test.json.JsonCompareMode
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.returnResult
+import java.net.URI
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.time.Instant
@@ -225,18 +226,20 @@ class TripsControllerTests(
     }
 
     @Test
-    fun `binds dates as UTC and repeated query parameters as lists`() {
+    fun `binds dates with an offset, or as UTC without one, and repeated query parameters as lists`() {
         val utc = Instant.parse("2026-01-23T21:15:00Z")
 
         listOf(
             "/departures/S01700?date=2026-01-23T21:15:00" to listOf(StationId("S01700"), utc),
             "/departures/S01700?date=2026-01-23T21:15" to listOf(StationId("S01700"), utc),
+            "/departures/S01700?date=2026-01-23T21:15:00Z" to listOf(StationId("S01700"), utc),
+            "/departures/S01700?date=2026-01-23T22:15:00%2B01:00" to listOf(StationId("S01700"), utc),
             "/departures/S01700" to listOf(StationId("S01700"), null),
             "/trips/S01700/S00452?date=2026-01-23T21:15:00" to listOf(StationId("S01700"), StationId("S00452"), utc),
             "/trips/all?from=S01700&from=S01820&to=S00452" to listOf(listOf(StationId("S01700"), StationId("S01820")), listOf(StationId("S00452")), null),
         ).forEach { (uri, arguments) ->
             requests.clear()
-            webTestClient.get().uri(uri).exchange().expectStatus().isOk
+            webTestClient.get().uri(URI.create(uri)).exchange().expectStatus().isOk
             assertEquals(listOf(arguments), requests, uri)
         }
     }
