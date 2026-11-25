@@ -287,6 +287,7 @@ components:
         lastUpdate:
           $ref: '#/components/schemas/LastUpdated'
         lastUpdateFromProvider:
+          description: When the provider last detected the train's position, in UTC without offset. Absent before departure.
           $ref: '#/components/schemas/LastUpdated'
         run:
           $ref: '#/components/schemas/Run'
@@ -341,6 +342,7 @@ components:
         lastUpdate:
           $ref: '#/components/schemas/LastUpdated'
         lastUpdateFromProvider:
+          description: When the provider last detected the train's position, in UTC without offset. Absent before departure.
           $ref: '#/components/schemas/LastUpdated'
     RunId:
       type: string

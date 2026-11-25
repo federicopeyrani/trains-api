@@ -1,202 +1,94 @@
-# ViaggiaTreno: open questions before further fixes
+# ViaggiaTreno: open questions
 
-Improvements from the architecture review that cannot be made safely until we know how the ViaggiaTreno API
-actually behaves. The API is unofficial and inconsistent: the same concept has different field names across
-endpoints, and a field present in one response can be `null` or missing in another (e.g. `codDestinazione` on
-board entries). `viaggiatreno-api.yaml` describes some of this, but parts of it are inferred, not observed.
+Improvements from the architecture review that depended on how the ViaggiaTreno API actually behaves. The API is
+unofficial and inconsistent: the same concept has different field names across endpoints, and a field present in one
+response can be `null` in another.
 
-How to investigate:
-- Use the app's client: `./gradlew providerContractTest`, or a throwaway test built on `ViaggiaTrenoClients`. Plain
-  `curl` gets rate limited (403) sooner, and headers must not be spoofed to get around it.
+Most questions were answered on 2026-11-25. The sources are the official site's own client code and live calls, from
+[`viaggiatreno-web-client-reverse-engineering.md`](viaggiatreno-web-client-reverse-engineering.md) and follow-up
+checks: 16 boards (453 entries), 35 runs, and about 350 calls.
+
+How to investigate what is still open:
+- Use the app's client: `./gradlew providerContractTest`, or a throwaway test built on `ViaggiaTrenoClients`. Keep
+  to about 1 request per second, and never spoof headers.
 - Record what you learn as fixtures in `src/test/resources/providers/viaggiatreno/`.
-- Pin each confirmed behaviour with a provider contract test (`ViaggiaTrenoContractTests`). Keep it to a handful of
-  calls.
-
-Each entry lists what the code does today, what is unknown, what to look at, and the likely fix once it is known.
+- Pin each confirmed behaviour with a provider contract test (`ViaggiaTrenoContractTests`).
 
 ---
 
-## 1. Run status ignores delays, and maps provider code `2` to `DELAYED`
+## Resolved
 
-**Today.** `ViaggiaTrenoTripMapper.asStatus` maps `AndamentoTreno.provvedimento` as follows: `1` becomes `CANCELLED`,
-`2` becomes `DELAYED`, and anything else becomes `ON_TIME`. The train-level `ritardo` (delay in minutes) is never
-used, so a train 40 minutes late is reported `ON_TIME`.
+| # | Question | Finding | Change |
+|---|---|---|---|
+| 1 | What `provvedimento` and `ritardo` mean | `provvedimento` was only ever 0 or 1, and `tipoTreno` only PG or ST. `ritardo` is the train's current delay in minutes: null before departure, negative when early. | Status is `CANCELLED` for ST/1, `DELAYED` when `ritardo > 0`, otherwise `ON_TIME` (`46500c5`). |
+| 2 | What a cancelled train looks like | `andamentoTreno` answers **200 with the full stop list** (not empty, not 204), with `ritardo` null and normal scheduled times. On boards it is `provvedimento: 1`, `compRitardo` "Cancellato", `ritardo` null. | Cancelled runs map normally, so trip searches return them with status `CANCELLED` (`46500c5`). Fixed the provider spec, which said the list was empty. |
+| 3 | `/trips` dropping unverifiable trains | Our own model, not the API. The journey planner (`soluzioniViaggioNew`) answers 404 for every input, so it is no alternative. | `unverifiedDepartures` count and an SSE `summary` event (`e23b05b`). |
+| 4 | What "expected" means at each stop | The site takes the scheduled time from the stop (`partenza_teorica` / `arrivo_teorico`). Until the event happens, it forecasts scheduled + the train's `ritardo`; the stop's own `ritardo` only describes past events. Pre-formatted `comp*` times can disagree with the raw ones. | The same rule at every call, and no more `HH:mm` parsing (`0c56063`). |
+| 5 | Resolving a destination by name | `codDestinazione` was null on 200 of 200 board entries. `destinazione` is the exact `nomeLungo` of the last stop (19 of 19), and `cercaStazione` matches by prefix. | Exact name match only (`0374cfb`). |
+| 6 | Time window of a board | About [t − 15 min, t + 105 min], sorted by time. Boards are **live data**: past slots are empty, far-future ones nearly empty. Runs exist **only for today** (other days answer 204). | Documented on the `date` parameter (`e82a151`). |
+| 9 | `ultimoRilev`, `dataPartenzaTreno` | `ultimoRilev` equals `oraUltimoRilevamento`: the last position detection, null before departure. `dataPartenzaTreno` is local midnight in Rome, and any millis within that day work. | `lastUpdateFromProvider` documented. |
+| – | `orarioPartenza` on boards | It is the departure from the board's own station: equal to that stop's `partenza_teorica` (18 of 18). | Already relied on; no change. |
 
-**Unknown.**
-- What `provvedimento` really means. The spec says `0` regular, `1` cancelled, `2` partially
-  cancelled/diverted/rescheduled, `3` diverted. The `PartenzeArrivi` (board) schema only lists `0`–`2`. It's also
-  unclear whether the value matches between `partenze` and `andamentoTreno` for the same train.
-- How `ritardo` behaves:
-  - before the train departs (`0`? `null`? a forecast?)
-  - after it arrives
-  - for trains that are early (negative values)
-- What `tipoTreno` (`PG`/`ST`/`PP`/`SI`/`SF`/`DV`) and the board's `riprogrammazione` mean, and whether they are more
-  reliable than `provvedimento`.
+## Closed without change
 
-**Look at.** The same train on `partenze` and on `andamentoTreno`, for:
-- a regular train
-- a delayed train
-- a partially cancelled train (look for strikes or disruption notices)
-- a diverted train
+### 7. A local station registry
 
-**Likely fix.**
-- Derive the status from `ritardo` with a threshold, plus a separate cancellation flag.
-- Possibly add `PARTIALLY_CANCELLED`/`DIVERTED` to the public `Status` enum. That changes the public contract.
+Not viable with the available endpoints:
+- `elencoStazioni/0` has 723 entries for only 609 distinct codes, 135 of them without coordinates. Of 302 station codes
+  seen on boards and in runs, **213 are missing** from it (e.g. Firenze Campo Marte, Fiumicino Aeroporto).
+- Skipping the region lookup does not work either: `dettaglioStazione/{id}/0` returns `localita: null` for stations
+  off the national map (e.g. Genova Brignole, Aosta), and only the right region fills it. For an unknown id it returns
+  the "Y" placeholder.
 
-## 2. Cancelled trains disappear
+The per-request `regione` + `dettaglioStazione` lookups, cached for 60 minutes, stay. Revisit if the per-region lists
+(`elencoStazioni/{1..22}`) turn out to cover every station together; that has not been checked.
 
-**Today.**
-- The spec says a cancelled train comes back as `tipoTreno = ST`, `provvedimento = 1`, with an empty `fermate`, or
-  `andamentoTreno` may answer 204 ("often for cancelled or rescheduled trains").
-- With an empty `fermate`, `toRun` throws ("has no stops") and the departure is left without its run. Trip searches
-  count it in `unverifiedDepartures` (see 3), but nothing says it is cancelled, so `CANCELLED` is effectively never
-  produced.
+---
 
-Part of this is our model, not the API:
-- `Run` requires an origin and a destination stop built from the stop list, so a train without stops has no valid
-  `Run`.
-- `Departure` has no notion of cancellation, although the board entry carries `provvedimento`.
-- The adapter's `orNull` turns every failure (mapping bug, outage, cancelled train) into the same `run = null`.
+## Still open
 
-**Unknown (API).** For a cancelled train:
-- What `partenze` returns: does the entry stay on the board, and with which `provvedimento`/`statoTreno`?
-- Whether `andamentoTreno` answers 200 with empty stops, or 204.
-- Whether partially cancelled trains keep their stop list, and how the cancelled stops are marked
-  (`Fermata.actualFermataType`? `tipoFermata`?).
+### A. Partial cancellations and diversions
 
-**Look at.**
-- A real cancelled train, on both endpoints.
-- A partially cancelled train's `fermate`.
+Never observed: no `provvedimento` 2/3 and no `tipoTreno` PP/SI/SF/DV, and `fermateSoppresse` was always empty.
 
-**Likely fix.**
-- Model the outcome of fetching a run explicitly instead of `Run?`: found, not known to the provider, could not be
-  fetched, cancelled.
-- Carry the cancellation on `Departure` from the board entry.
-- Mark cancelled stops so `serves` can exclude them.
-- Decide whether trip searches return cancelled trains (likely yes, flagged), instead of counting them as unverified.
+The site's code treats a stop with `actualFermataType == 3` as cancelled. It skips such a stop when picking the last
+stop, and draws it red and not clickable. `actualFermataType` was only ever 0 or 1 in practice.
 
-## 3. ~~`/trips` silently drops trains whose run could not be fetched~~ (done)
+**Look at:** a partially cancelled or diverted train, when there is one (strikes, works). Check:
+- whether `fermate` keeps the cancelled stops, marked 3;
+- what `provvedimento`/`tipoTreno` are;
+- what `subTitle` says.
 
-`Departure.serves` now answers `UNKNOWN` without the run. Trip searches leave those departures out of `trips`, but
-report how many there were: `unverifiedDepartures` in JSON, and a final `summary` event over SSE. Departures whose
-destination cannot be resolved are kept too, so they are counted.
+**Then:** exclude cancelled stops from `Run.serves` (a train that skips the destination does not serve it), and
+possibly add `PARTIALLY_CANCELLED` / `DIVERTED` to the public `Status`.
 
-Still open:
-- **API:** how often `andamentoTreno` fails or answers 204 for trains that are really running, apart from rate
-  limiting.
-- **API:** whether another endpoint answers "trains from A to B" directly. The ViaggiaTreno website has a journey
-  planner (`soluzioniViaggioNew/...`), but it is not in our spec and its shape and reliability are unknown.
-- **Model:** a departure whose board destination is the searched station certainly reaches it, even without the run.
-  It is still counted as unverified, because the destination comes from a fuzzy name lookup (see 5).
+### B. Rate limit budget
 
-## 4. "Expected" time means different things at each stop
+No 403 in about 330 calls at about 1 request per second. Earlier, a cold-cache run of about 500 calls in 45 seconds
+(about 11 per second, `providers.viaggiatreno.concurrency=10`) caused a block that lasted about 60 minutes. So the
+threshold lies somewhere between those two rates, and the block lasts long.
 
-**Today.**
-- **Origin:** `expected = Fermata.partenzaTeorica`. This looks like the scheduled time, not a forecast.
-- **Intermediate stops:** `expected = scheduled + AndamentoTreno.ritardo`. The train's current delay is applied to
-  every stop, including ones already passed.
-- **Destination:** `expected = compOrarioArrivoZeroEffettivo`, an `HH:mm` string placed on the nearest day.
-- `scheduled` also comes from different sources: `orarioPartenza`/`orarioArrivo` at the ends, `partenzaTeorica`/
-  `arrivoTeorico` at the stops.
+**Decide:**
+- a shared limiter on the Ktor client, below the observed threshold;
+- a circuit breaker that turns 403s into fast 503s for a while;
+- whether a cold `/departures` (about 1 + N + 2M calls) is acceptable at the resulting latency.
 
-**Unknown.** What these fields actually mean, and whether they are reliable:
-- On `Fermata`: `programmata`, `partenzaTeorica`/`arrivoTeorico` (and their `...Zero` forms), `ritardoArrivo`,
-  `ritardoPartenza`, and the per-stop `ritardo`. The current code says per-stop `ritardo` stays `0` until the train
-  reaches the stop.
-- Whether `compOrarioArrivoZeroEffettivo` is "scheduled plus current delay" or the provider's own forecast.
+**Look at, only through normal use:** the rate at which blocks start.
 
-**Look at.** One train followed through its run (several `andamentoTreno` snapshots), comparing those fields before
-and after each stop.
+### C. Board destination known without the run
 
-**Likely fix.**
-- One rule for `expected` at every call: probably `scheduled + delay`, where the delay is the stop's own delay once
-  it is known and the train's delay otherwise.
-- One source for `scheduled`, documented in the mapper.
-
-## 5. Resolving a destination by name picks the first fuzzy match
-
-**Today.** When a board entry has no run, the destination is resolved with `cercaStazione(destinazione)` and the
-first result is taken. `codDestinazione` is not used because "it can be null for some trips".
-
-**Unknown.**
-- How often `codDestinazione` is null on boards, and for which trains (international or regional?).
-- Whether `destinazione` always matches some station's `nomeLungo` exactly, so we could require an exact match.
-
-**Look at.**
-- A few boards: count null `codDestinazione`, and compare `destinazione` with the `cercaStazione` results.
-
-**Likely fix.** Use `codDestinazione` when present, an exact name match otherwise, and never a guess. Item 7 would
-make both lookups local.
-
-## 6. A trip search only sees one board page
-
-**Today.** `/trips/{from}/{to}` filters a single `partenze` response. How far ahead that looks is undocumented, so
-infrequent connections may never show up, and the API does not say so.
-
-**Unknown.**
-- How many entries `partenze` returns, and over what time span. It may differ between busy and quiet stations.
-- Whether trains that already left but are delayed are included.
-- Whether asking for a later `orarioAttuale` gives a clean next page, for paging.
-
-**Look at.** Boards at a busy station (Milano Centrale) and a quiet one, at several times; compare first/last
-`orarioPartenza` and the entry counts.
-
-**Likely fix.**
-- Document the window in `openapi.yaml`.
-- Optionally page through boards up to a horizon, within the upstream call budget.
-
-## 7. A local station registry instead of per-request station lookups
-
-**Today.** Every station takes two upstream calls (`regione`, then `dettaglioStazione`), cached for 60 minutes.
-Resolving a board fans out to hundreds of calls when the cache is cold. That is the main cause of the 403 blocks and
-of poor horizontal scaling, since every instance has its own cache.
-
-**Unknown.**
-- Whether `elencoStazioni/{codiceRegione}` returns every station with coordinates and names.
-- Which region codes exist, how big the responses are, and how often they change.
-- How it treats stations in region `0`. Real ones exist: see fixture `dettaglioStazione_S01139_0`. They must be told
-  apart from the "Y" placeholder returned for unknown stations.
-- Whether foreign stations (`origineEstera`/`destinazioneEstera`) appear anywhere.
-
-**Look at.** `elencoStazioni` for every region, once. Compare it with `dettaglioStazione` for a sample of stations.
-
-**Likely fix.**
-- Load the registry at startup, or keep a committed snapshot refreshed on a schedule.
-- Resolve ids and names locally (this also fixes item 5), and drop the region lookups.
-
-## 8. Rate limit budget
-
-**Today.** No backoff, circuit breaker or overall call budget. About 500 calls in 45 seconds triggered a block lasting
-about 60 minutes. The block depends on the client (plain curl was blocked while the app's Ktor client was not).
-
-**Unknown.** The threshold (calls per window), how long blocks last, and what the block is keyed on (IP, client,
-headers). Find out only through normal use, never by spoofing.
-
-**Likely fix.**
-- A shared limiter on the Ktor client, sized below the observed threshold.
-- A circuit breaker that turns 403s into fast 503s for a while, instead of hammering the provider.
-
-## 9. Smaller questions
-
-- **`dataPartenzaTreno` / `RunId.departureDate`.** Is it always midnight Europe/Rome, including on DST change days?
-  `RunId` exposes it as epoch millis; a `LocalDate` would be cleaner, but only if the mapping is exact.
-- **`ultimoRilev` and `oraUltimoRilevamento`.** What each one means (last position report? last data update?), since
-  `lastUpdateFromProvider` exposes `ultimoRilev`.
-- **Fields that differ between endpoints.** Spot-check fields read from both `partenze` and `andamentoTreno`
-  (`orarioArrivo`, `ritardo`, `provvedimento`) for disagreements.
+A departure whose run is unknown is counted as unverified, even when the board's `destinazione` is the searched
+station, which it certainly reaches. Now that the name resolves only on an exact match (5), that case could become a
+trip built from the board's times. This is a product decision, not an API question.
 
 ---
 
 ## Decisions needed (no investigation)
 
-These came out of the same review but are product choices rather than API questions:
-
-- **Result order.** `/departures` and `/trips` return items in the order their train lookups finish, not by time.
-  - Sorting by departure time means waiting for every item, which removes the benefit of streaming over SSE.
-  - Options:
-    - Sort JSON responses only, and keep SSE streaming.
-    - Sort everywhere.
-    - Document the response as unordered.
+- **Result order.** `/departures` and the trip searches return trips in the order their train lookups finish, not by
+  time. Boards themselves are sorted.
+  - Sorting means waiting for every train, which loses the benefit of streaming over SSE for departures. Trip-search
+    JSON is already collected, so it could be sorted at no cost.
 - **Time zone on the wire.** Times are sent as UTC with no offset (`2026-01-23T21:15`), which is not valid RFC 3339
-  `date-time`. Adding `Z` (and accepting offsets in `date`) is more correct, but it breaks clients that parse the
-  current format.
+  `date-time`. Adding `Z`, and accepting offsets in `date`, is more correct but breaks clients that parse the current
+  format.
