@@ -34,9 +34,9 @@ class ViaggiaTrenoTripsProviderTests {
     private val boardPath = "partenze/S01700/Fri Jan 23 2026 22:20:00 GMT+0100"
     private fun trainPath(number: Int) = "andamentoTreno/S01700/$number/1769122800000"
 
-    private class Upstream(statuses: Map<String, HttpStatusCode> = emptyMap()) {
+    private class Upstream(statuses: Map<String, HttpStatusCode> = emptyMap(), bodies: Map<String, String> = emptyMap()) {
 
-        val engine = mockEngine(statuses = statuses)
+        val engine = mockEngine(statuses = statuses, bodies = bodies)
         private val cache = Cache(Clock.System)
 
         val provider = ViaggiaTrenoTripsProvider(
@@ -75,6 +75,21 @@ class ViaggiaTrenoTripsProviderTests {
         val withoutRun = departures.single { it.run == null }
         assertEquals(Station(StationId("S00452"), "Torino Lingotto"), withoutRun.destination, "resolved from the board's name")
         assertEquals(Instant.parse("2026-01-23T21:15:00Z"), withoutRun.scheduledDeparture)
+    }
+
+    @Test
+    fun `resolves a destination by name only on an exact match`() = runTest {
+        // A search whose only result is another (fully resolvable) station, as prefix matching can give
+        val upstream = Upstream(
+            statuses = mapOf(trainPath(7644) to HttpStatusCode.InternalServerError),
+            bodies = mapOf(
+                "cercaStazione/TORINO LINGOTTO" to """[{"nomeLungo":"TORINO PORTA SUSA","nomeBreve":"Torino P.Susa","label":"Torino","id":"S00035"}]""",
+            ),
+        )
+
+        val departures = upstream.provider.getDepartures(StationId("S01700"), boardTime).toList()
+
+        assertEquals(null, departures.single { it.run == null }.destination, "not Torino Porta Susa")
     }
 
     @Test

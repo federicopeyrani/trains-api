@@ -32,15 +32,24 @@ const val VIAGGIATRENO_FIXTURES = "/providers/viaggiatreno"
  * outages): it maps the decoded path after `/viaggiatreno/` (e.g. `andamentoTreno/S01700/2185/1769122800000`) to the
  * status answered, with an empty body, instead of the fixture.
  *
+ * [bodies] answers a path (same keys) with the given JSON instead of the fixture, for responses that are plausible
+ * but were not recorded, e.g. a search whose results are only prefix matches.
+ *
  * Every request is kept in [MockEngine.requestHistory], so tests can assert on upstream traffic.
  */
 fun mockEngine(
     basePath: String = VIAGGIATRENO_FIXTURES,
     statuses: Map<String, HttpStatusCode> = emptyMap(),
+    bodies: Map<String, String> = emptyMap(),
 ) = MockEngine { request ->
     statuses[request.upstreamPath()]?.let { status ->
         log.info("Mocking response for ${request.method.value} ${request.url.encodedPath} with status $status")
         return@MockEngine respond(content = "", status = status)
+    }
+
+    bodies[request.upstreamPath()]?.let { body ->
+        log.info("Mocking response for ${request.method.value} ${request.url.encodedPath} with an inline body")
+        return@MockEngine respond(content = body, headers = headersOf("Content-Type" to listOf("application/json")))
     }
 
     val resourcePath = "$basePath/${getResourceName(request)}"

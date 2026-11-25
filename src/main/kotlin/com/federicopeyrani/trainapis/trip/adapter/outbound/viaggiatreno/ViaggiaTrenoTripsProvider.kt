@@ -88,8 +88,8 @@ class ViaggiaTrenoTripsProvider(
         }
 
         val destination = run?.destination?.station
-            // `codDestinazione` can actually be null for some trips
-            // `destinazione` seems to always be non-null though
+            // Board entries have no usable destination id (`codDestinazione` is always null), but `destinazione` is the
+            // exact `nomeLungo` of the destination station
             ?: orNull("destination '$destinazione' of train $numeroTreno") { getStationByNameOrNull(destinazione) }
 
         return toDeparture(station, destination, boardLastUpdate, run)
@@ -120,10 +120,14 @@ class ViaggiaTrenoTripsProvider(
             null
         }
 
+    /**
+     * The station whose name is exactly [name]. `cercaStazione` matches by prefix, so its first result may be another
+     * station (searching "VERONA" also lists "VERONA PORTA NUOVA"); without an exact match the station is unknown.
+     */
     private suspend fun getStationByNameOrNull(name: String): Station? {
         val result = stationApiWrapper.searchStations(name)
             .data
-            .firstOrNull()
+            .singleOrNull { it.nomeLungo.equals(name.trim(), ignoreCase = true) }
             ?: return null
 
         return getStationByIdOrNull(StationId(result.id))
