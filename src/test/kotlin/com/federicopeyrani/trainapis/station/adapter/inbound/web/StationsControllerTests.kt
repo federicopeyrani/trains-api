@@ -1,5 +1,7 @@
 package com.federicopeyrani.trainapis.station.adapter.inbound.web
 
+import com.federicopeyrani.trainapis.shared.domain.StationId
+import com.federicopeyrani.trainapis.shared.domain.Station
 import com.federicopeyrani.trainapis.station.application.port.inbound.SearchStationsUseCase
 import com.federicopeyrani.trainapis.station.domain.GeoLocation
 import com.federicopeyrani.trainapis.station.domain.StationDetails
@@ -28,8 +30,8 @@ class StationsControllerTests(
         fun searchStations() = SearchStationsUseCase { query ->
             when (query) {
                 "torino" -> flowOf(
-                    StationDetails("S00452", "Torino Lingotto", GeoLocation(45.0266, 7.657469)),
-                    StationDetails("S00450", "Torino Stura", location = null),
+                    StationDetails(Station(StationId("S00452"), "Torino Lingotto"), GeoLocation(45.0266, 7.657469)),
+                    StationDetails(Station(StationId("S00450"), "Torino Stura"), location = null),
                 )
 
                 else -> emptyFlow()

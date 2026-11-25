@@ -4,7 +4,7 @@ package com.federicopeyrani.trainapis.station.adapter.outbound.viaggiatreno
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoProperties
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoStationsApiWrapper
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.StazioneDettagliata
-import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.displayName
+import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.toStation
 import com.federicopeyrani.trainapis.shared.util.log
 import com.federicopeyrani.trainapis.station.application.port.outbound.StationsProvider
 import com.federicopeyrani.trainapis.station.domain.GeoLocation
@@ -48,8 +48,7 @@ class ViaggiaTrenoStationsProvider(
     }
 
     private fun StazioneDettagliata.toStationDetails() = StationDetails(
-        id = codStazione,
-        name = displayName(),
+        station = toStation(),
         location = if (lat != null && lon != null) GeoLocation(latitude = lat, longitude = lon) else null,
     )
 }

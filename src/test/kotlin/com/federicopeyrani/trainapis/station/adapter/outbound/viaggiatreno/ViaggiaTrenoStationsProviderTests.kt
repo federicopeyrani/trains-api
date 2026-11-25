@@ -1,5 +1,7 @@
 package com.federicopeyrani.trainapis.station.adapter.outbound.viaggiatreno
 
+import com.federicopeyrani.trainapis.shared.domain.StationId
+import com.federicopeyrani.trainapis.shared.domain.Station
 import com.federicopeyrani.trainapis.mockEngine
 import com.federicopeyrani.trainapis.shared.infrastructure.cache.Cache
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.ViaggiaTrenoClients
@@ -36,8 +38,8 @@ class ViaggiaTrenoStationsProviderTests {
 
         assertEquals(
             setOf(
-                StationDetails("S00035", "Torino Porta Susa", GeoLocation(45.075906, 7.667673)),
-                StationDetails("S00452", "Torino Lingotto", GeoLocation(45.0266, 7.657469)),
+                StationDetails(Station(StationId("S00035"), "Torino Porta Susa"), GeoLocation(45.075906, 7.667673)),
+                StationDetails(Station(StationId("S00452"), "Torino Lingotto"), GeoLocation(45.0266, 7.657469)),
             ),
             stations.toSet(),
         )

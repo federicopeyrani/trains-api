@@ -6,8 +6,8 @@ import com.federicopeyrani.trainapis.station.domain.StationDetails
 import com.federicopeyrani.trainapis.model.StationDetails as StationDetailsDto
 
 fun StationDetails.toDto() = StationDetailsDto(
-    id = id,
-    name = name,
+    id = station.id.value,
+    name = station.name,
     location = location?.toDto(),
 )
 
