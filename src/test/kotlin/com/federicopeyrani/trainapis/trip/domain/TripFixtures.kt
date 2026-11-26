@@ -25,6 +25,7 @@ object TripFixtures {
             id = RunId(id(stations.first()), TrainNumber(trainNumber), 1769122800000),
             train = Train(TrainNumber(trainNumber), station(stations.first()), station(stations.last())),
             status = RunStatus.ON_TIME,
+            tracking = Tracking.Pending,
             origin = OriginStop.of(station(stations.first()), Timing(at(8))),
             destination = DestinationStop.of(station(stations.last()), Timing(at(lastHour))),
             stops = stations.drop(1).dropLast(1).mapIndexed { index, id ->

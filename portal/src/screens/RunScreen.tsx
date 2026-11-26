@@ -103,11 +103,12 @@ function RunDetails({ run, receivedAt }: { run: Run; receivedAt: string }) {
         <dd title={run.lastUpdate}>
           {formatDateTime(run.lastUpdate)} ({formatRelative(run.lastUpdate)})
         </dd>
-        <dt>From provider</dt>
-        <dd title={run.lastUpdateFromProvider}>
-          {run.lastUpdateFromProvider
-            ? `${formatDateTime(run.lastUpdateFromProvider)} (${formatRelative(run.lastUpdateFromProvider)})`
-            : "– (not departed yet)"}
+        <dt>Tracking</dt>
+        <dd title={run.tracking.lastDetection}>
+          <StatusBadge status={run.tracking.state} />{" "}
+          {run.tracking.lastDetection
+            ? `last detected ${formatDateTime(run.tracking.lastDetection)} (${formatRelative(run.tracking.lastDetection)})`
+            : "never detected"}
         </dd>
         <dt>Received</dt>
         <dd>{formatDateTime(receivedAt)}</dd>

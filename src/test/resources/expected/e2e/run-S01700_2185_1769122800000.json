@@ -12,6 +12,10 @@
         }
     },
     "status": "DELAYED",
+    "tracking": {
+      "state": "LIVE",
+      "lastDetection": "2026-01-23T21:25:00Z"
+    },
     "origin": {
         "station": {
             "id": "S01700",
@@ -171,6 +175,5 @@
             }
         }
     ],
-    "lastUpdate": "2026-01-23T21:20:00Z",
-    "lastUpdateFromProvider": "2026-01-23T21:25:00Z"
+    "lastUpdate": "2026-01-23T21:20:00Z"
 }

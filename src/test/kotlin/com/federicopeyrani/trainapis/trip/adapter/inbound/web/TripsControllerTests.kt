@@ -19,6 +19,7 @@ import com.federicopeyrani.trainapis.trip.domain.RunNotFoundException
 import com.federicopeyrani.trainapis.trip.domain.RunStatus
 import com.federicopeyrani.trainapis.trip.domain.StopStatus
 import com.federicopeyrani.trainapis.trip.domain.Timing
+import com.federicopeyrani.trainapis.trip.domain.Tracking
 import com.federicopeyrani.trainapis.trip.domain.Train
 import com.federicopeyrani.trainapis.trip.domain.Trip
 import kotlinx.coroutines.flow.emptyFlow
@@ -72,6 +73,7 @@ class TripsControllerTests(
             id = RunId(StationId("S01700"), TrainNumber(2185), 1769122800000),
             train = Train(TrainNumber(2185), centrale, lingotto),
             status = RunStatus.DELAYED,
+            tracking = Tracking.Live(at(21, 29)),
             origin = OriginStop(centrale, StopStatus.DEPARTED, Timing(at(21, 15), at(21, 15), at(21, 18))),
             destination = DestinationStop(lingotto, StopStatus.NOT_YET_ARRIVED, Timing(at(23, 15), at(23, 20))),
             stops = listOf(
@@ -83,7 +85,6 @@ class TripsControllerTests(
                 ),
             ),
             lastUpdate = at(21, 30),
-            lastUpdateFromProvider = at(21, 29),
         )
 
         /**

@@ -107,6 +107,7 @@ class ViaggiaTrenoContractTests {
         val entry = board.first()
         val train = assertNotNull(upstream { trains.getTrain(entry).data }, "status of train ${entry.numeroTreno}")
         assertEquals(entry.numeroTreno, train.numeroTreno)
+        assertNotNull(train.arrivato, "tracking relies on `arrivato`")
 
         val run = train.toRun(entry.dataPartenzaTreno, now, stations = emptyMap())
         val calls = listOf(run.origin.station.id.value) + run.stops.map { it.station.id.value } + run.destination.station.id.value

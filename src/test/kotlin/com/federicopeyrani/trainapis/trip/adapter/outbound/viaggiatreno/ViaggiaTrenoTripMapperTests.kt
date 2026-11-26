@@ -7,6 +7,7 @@ import com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno.ViaggiaT
 import com.federicopeyrani.trainapis.trip.adapter.outbound.viaggiatreno.ViaggiaTrenoTripMapper.toRun
 import com.federicopeyrani.trainapis.trip.domain.RunStatus
 import com.federicopeyrani.trainapis.trip.domain.StopStatus
+import com.federicopeyrani.trainapis.trip.domain.Tracking
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -61,6 +62,55 @@ class ViaggiaTrenoTripMapperTests {
             .toRun(departureDate = 1769122800000, lastUpdate = Instant.fromEpochSeconds(0), stations)
 
         assertEquals(status, run.status)
+    }
+
+    /**
+     * The train is due out at 21:20 UTC. [detected] and [now] are minutes after that.
+     */
+    @ParameterizedTest
+    @CsvSource(
+        "   , -60, PENDING",
+        "   ,  15, PENDING",
+        "   ,  16, MISSING",
+        "  5,   4, LIVE",
+        "  5,  20, LIVE",
+        "  5,  21, STALE",
+    )
+    fun `derives the tracking state from the age of the last detection`(detected: Long?, now: Long, state: String) {
+        val departure = Instant.parse("2026-01-23T21:20:00Z")
+        val detection = detected?.let { departure + it.minutes }
+        val run = train.copy(oraUltimoRilevamento = detection?.toEpochMilliseconds())
+            .toRun(departureDate = 1769122800000, lastUpdate = departure + now.minutes, stations)
+
+        val expected = when (state) {
+            "LIVE" -> Tracking.Live(detection!!)
+            "STALE" -> Tracking.Stale(detection!!)
+            "PENDING" -> Tracking.Pending
+            else -> Tracking.Missing
+        }
+        assertEquals(expected, run.tracking)
+    }
+
+    @Test
+    fun `stops tracking a train that has arrived or is cancelled`() {
+        val calls = train.fermate!!
+        val reached = calls.last().copy(arrivoReale = calls.last().arrivoTeorico)
+        val trains = listOf(
+            train.copy(arrivato = true),
+            train.copy(fermate = calls.dropLast(1) + reached),
+            // Cut short: the arrival at the last stop still served ends the journey
+            train.copy(
+                fermate = calls.dropLast(2) +
+                    calls[calls.lastIndex - 1].copy(arrivoReale = calls[calls.lastIndex - 1].arrivoTeorico) +
+                    calls.last().copy(actualFermataType = 3),
+            ),
+            train.copy(tipoTreno = AndamentoTreno.TipoTreno.ST, provvedimento = 1),
+        )
+
+        trains.forEach {
+            val run = it.toRun(departureDate = 1769122800000, lastUpdate = Instant.parse("2026-01-24T00:00:00Z"), stations)
+            assertEquals(Tracking.NotTracked(Instant.fromEpochMilliseconds(train.oraUltimoRilevamento!!)), run.tracking)
+        }
     }
 
     @Test

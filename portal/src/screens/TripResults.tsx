@@ -75,6 +75,11 @@ export function TripResults({ state, reload }: { state: RequestState<TripSearch>
               </Cell>
               <Cell>
                 <StatusBadge status={trip.run?.status} />
+                {trip.run && (
+                  <div>
+                    <StatusBadge status={trip.run.tracking.state} />
+                  </div>
+                )}
               </Cell>
               <Cell>
                 <span

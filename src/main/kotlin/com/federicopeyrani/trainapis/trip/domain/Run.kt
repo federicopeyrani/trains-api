@@ -13,11 +13,11 @@ data class Run(
     val id: RunId,
     val train: Train,
     val status: RunStatus,
+    val tracking: Tracking,
     val origin: OriginStop,
     val destination: DestinationStop,
     val stops: List<IntermediateStop>,
     val lastUpdate: Instant,
-    val lastUpdateFromProvider: Instant? = null,
 ) {
 
     private val destinationIndex get() = stops.size + 1

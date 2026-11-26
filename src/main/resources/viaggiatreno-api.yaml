@@ -903,6 +903,9 @@ components:
         haCambiNumero:
           type: boolean
           description: Whether train has changed its number
+        arrivato:
+          type: boolean
+          description: Whether train has arrived at its destination
         nonPartito:
           type: boolean
           description: Whether train has not departed from origin yet

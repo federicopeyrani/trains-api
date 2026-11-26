@@ -9,6 +9,7 @@ export type Run = Schemas["Run"]
 export type Timing = Schemas["Timing"]
 export type StopStatus = Schemas["StopStatus"]
 export type RunStatus = Schemas["Status"]
+export type TrackingState = Schemas["TrackingState"]
 export type Problem = Schemas["Problem"]
 
 export type ApiClient = ReturnType<typeof createApiClient>

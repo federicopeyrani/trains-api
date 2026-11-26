@@ -14,6 +14,7 @@ import com.federicopeyrani.trainapis.trip.domain.Run
 import com.federicopeyrani.trainapis.trip.domain.RunId
 import com.federicopeyrani.trainapis.trip.domain.RunStatus
 import com.federicopeyrani.trainapis.trip.domain.Timing
+import com.federicopeyrani.trainapis.trip.domain.Tracking
 import com.federicopeyrani.trainapis.trip.domain.Train
 import com.federicopeyrani.trainapis.trip.domain.TrainNumber
 import kotlin.time.Duration.Companion.minutes
@@ -28,6 +29,8 @@ import kotlin.time.Instant
  * with the raw times, and they carry no date.
  */
 object ViaggiaTrenoTripMapper {
+
+    private val DETECTION_TIMEOUT = 15.minutes
 
     /**
      * Ids of every station this train calls at.
@@ -54,6 +57,7 @@ object ViaggiaTrenoTripMapper {
                 destination = (calls.lastOrNull { !it.isCancelled() } ?: last).station(),
             ),
             status = status(),
+            tracking = tracking(now = lastUpdate),
             origin = OriginStop.of(
                 station = first.station(),
                 departureTime = timing(first.partenzaTeorica ?: orarioPartenza, first.partenzaReale, ritardo),
@@ -66,7 +70,6 @@ object ViaggiaTrenoTripMapper {
             ),
             stops = calls.drop(1).dropLast(1).map { it.toIntermediateStop(it.station(), trainDelay = ritardo) },
             lastUpdate = lastUpdate,
-            lastUpdateFromProvider = ultimoRilev?.asInstant(),
         )
     }
 
@@ -125,6 +128,29 @@ object ViaggiaTrenoTripMapper {
         provvedimento == 1 || tipoTreno == AndamentoTreno.TipoTreno.ST -> RunStatus.CANCELLED
         (ritardo ?: 0) > 0 -> RunStatus.DELAYED
         else -> RunStatus.ON_TIME
+    }
+
+    /**
+     * Follows the ViaggiaTreno site's code, which gives up on a train's times when its last detection
+     * (`oraUltimoRilevamento`) is more than [DETECTION_TIMEOUT] old, or when there is none that long after its scheduled
+     * departure. A train has arrived once `arrivato` is set or its last served stop has an actual arrival.
+     *
+     * The payload's own "Mancato rilevamento" text (`compRitardo`) is not read: the rule behind it is unknown.
+     */
+    private fun AndamentoTreno.tracking(now: Instant): Tracking {
+        val servedCalls = fermate.orEmpty().filterNot { it.isCancelled() }
+        val lastDetection = oraUltimoRilevamento?.asInstant()
+        val arrived = arrivato == true || servedCalls.lastOrNull()?.arrivoReale != null
+
+        return when {
+            status() == RunStatus.CANCELLED || arrived -> Tracking.NotTracked(lastDetection)
+            lastDetection != null ->
+                if (now - lastDetection > DETECTION_TIMEOUT) Tracking.Stale(lastDetection) else Tracking.Live(lastDetection)
+            else -> {
+                val departure = (servedCalls.firstOrNull()?.partenzaTeorica ?: orarioPartenza).asInstant()
+                if (now - departure > DETECTION_TIMEOUT) Tracking.Missing else Tracking.Pending
+            }
+        }
     }
 
     private fun Long.asInstant() = Instant.fromEpochMilliseconds(this)

@@ -14,6 +14,7 @@ import com.federicopeyrani.trainapis.trip.domain.Run
 import com.federicopeyrani.trainapis.trip.domain.RunStatus
 import com.federicopeyrani.trainapis.trip.domain.StopStatus
 import com.federicopeyrani.trainapis.trip.domain.Timing
+import com.federicopeyrani.trainapis.trip.domain.Tracking
 import com.federicopeyrani.trainapis.trip.domain.Train
 import com.federicopeyrani.trainapis.trip.domain.Trip
 import com.federicopeyrani.trainapis.model.DestinationStop as DestinationStopDto
@@ -24,6 +25,8 @@ import com.federicopeyrani.trainapis.model.Station as StationDto
 import com.federicopeyrani.trainapis.model.Status as StatusDto
 import com.federicopeyrani.trainapis.model.StopStatus as StopStatusDto
 import com.federicopeyrani.trainapis.model.Timing as TimingDto
+import com.federicopeyrani.trainapis.model.Tracking as TrackingDto
+import com.federicopeyrani.trainapis.model.TrackingState as TrackingStateDto
 import com.federicopeyrani.trainapis.model.Train as TrainDto
 import com.federicopeyrani.trainapis.model.Trip as TripDto
 import com.federicopeyrani.trainapis.model.TripSearch as TripSearchDto
@@ -76,11 +79,22 @@ fun Run.toDto() = RunDto(
     id = id.toString(),
     train = train.toDto(),
     status = status.toDto(),
+    tracking = tracking.toDto(),
     origin = origin.toDto(),
     destination = destination.toDto(),
     stops = stops.map { it.toDto() },
     lastUpdate = lastUpdate,
-    lastUpdateFromProvider = lastUpdateFromProvider,
+)
+
+private fun Tracking.toDto() = TrackingDto(
+    state = when (this) {
+        is Tracking.Live -> TrackingStateDto.LIVE
+        is Tracking.Stale -> TrackingStateDto.STALE
+        Tracking.Pending -> TrackingStateDto.PENDING
+        Tracking.Missing -> TrackingStateDto.MISSING
+        is Tracking.NotTracked -> TrackingStateDto.NOT_TRACKED
+    },
+    lastDetection = lastDetection,
 )
 
 private fun Train.toDto() = TrainDto(

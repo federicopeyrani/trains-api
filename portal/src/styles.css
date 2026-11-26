@@ -509,11 +509,14 @@ h2 {
   white-space: nowrap;
   &[data-status="ON_TIME"],
   &[data-status="ARRIVED"],
-  &[data-status="DEPARTED"] {
+  &[data-status="DEPARTED"],
+  &[data-status="LIVE"] {
     color: var(--ok);
     border-color: currentColor;
   }
-  &[data-status="DELAYED"] {
+  &[data-status="DELAYED"],
+  &[data-status="STALE"],
+  &[data-status="MISSING"] {
     color: var(--warn);
     border-color: currentColor;
   }

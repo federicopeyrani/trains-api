@@ -326,6 +326,7 @@ components:
         - id
         - train
         - status
+        - tracking
         - origin
         - destination
         - stops
@@ -337,6 +338,8 @@ components:
           $ref: '#/components/schemas/Train'
         status:
           $ref: '#/components/schemas/Status'
+        tracking:
+          $ref: '#/components/schemas/Tracking'
         origin:
           $ref: '#/components/schemas/OriginStop'
         destination:
@@ -347,11 +350,39 @@ components:
             $ref: '#/components/schemas/IntermediateStop'
         lastUpdate:
           $ref: '#/components/schemas/LastUpdated'
-        lastUpdateFromProvider:
-          description: When the provider last detected the train's position. Absent before departure.
-          $ref: '#/components/schemas/LastUpdated'
     RunId:
       type: string
+    Tracking:
+      description: How well the provider is following the train, as of the run's `lastUpdate`.
+      type: object
+      required:
+        - state
+      properties:
+        state:
+          $ref: '#/components/schemas/TrackingState'
+        lastDetection:
+          description: |
+            When the provider last detected the train's position. Always present when `state` is `LIVE` or `STALE`, never
+            when it is `PENDING` or `MISSING`.
+          type: string
+          format: date-time
+    TrackingState:
+      description: |
+        - `LIVE`: the train has been detected recently.
+        - `STALE`: the train has been detected, but not recently: its times and statuses may be behind.
+        - `PENDING`: the train has not been detected, which is still normal (e.g. before its departure).
+        - `MISSING`: the train has not been detected although it should have been by now: statuses such as
+          `NOT_YET_DEPARTED` and the run's `status` cannot be relied on.
+        - `NOT_TRACKED`: there is nothing left to follow, as the train has arrived or is cancelled.
+
+        The provider decides what counts as recent or normal.
+      type: string
+      enum:
+        - LIVE
+        - STALE
+        - PENDING
+        - MISSING
+        - NOT_TRACKED
     Timing:
       description: Times of an event. Like every date-time of this API, they are RFC 3339 instants in UTC (e.g. `2026-01-23T21:15:00Z`).
       type: object
