@@ -25,7 +25,7 @@ How to investigate what is still open:
 | 3 | `/trips` dropping unverifiable trains | Our own model, not the API. The journey planner (`soluzioniViaggioNew`) answers 404 for every input, so it is no alternative. | `unverifiedDepartures` count and an SSE `summary` event (`e23b05b`). |
 | 4 | What "expected" means at each stop | The site takes the scheduled time from the stop (`partenza_teorica` / `arrivo_teorico`). Until the event happens, it forecasts scheduled + the train's `ritardo`; the stop's own `ritardo` only describes past events. Pre-formatted `comp*` times can disagree with the raw ones. | The same rule at every call, and no more `HH:mm` parsing (`0c56063`). |
 | 5 | Resolving a destination by name | `codDestinazione` was null on 200 of 200 board entries. `destinazione` is the exact `nomeLungo` of the last stop (19 of 19), and `cercaStazione` matches by prefix. | Exact name match only (`0374cfb`). |
-| 6 | Time window of a board | About [t − 15 min, t + 105 min], sorted by time. Boards are **live data**: past slots are empty, far-future ones nearly empty. Runs exist **only for today** (other days answer 204). | Documented on the `date` parameter (`e82a151`). |
+| 6 | Time window of a board | About [t − 15 min, t + 105 min], sorted by time. Past slots are empty. Runs exist **only for today** (other days answer 204). Boards for another day can still be full: on 2026-11-25 at 22:50, tomorrow's 08:00 board for Saronno (S01933) had 54 departures, but all 194 `andamentoTreno` calls for tomorrow answered 204. So a trip search for another day finds only unverified departures (see D). | Documented on the `date` parameter (`e82a151`). |
 | 9 | `ultimoRilev`, `dataPartenzaTreno` | `ultimoRilev` equals `oraUltimoRilevamento`: the last position detection, null before departure. `dataPartenzaTreno` is local midnight in Rome, and any millis within that day work. | `lastUpdateFromProvider` documented. |
 | 7 | A local station registry | No single list is complete (`elencoStazioni/0` misses most stations, and region 0 details lack names off the national map), but **regions 0..22 together** covered all 272 station codes seen. That is 3,362 stations with names, about 1.8 MB in 23 calls. 48 stations have no coordinates, and the 102 listed in several regions carry identical data. | `ViaggiaTrenoStationRegistry`, loaded once a day, with direct lookups as fallback. |
 | – | `orarioPartenza` on boards | It is the departure from the board's own station: equal to that stop's `partenza_teorica` (18 of 18). | Already relied on; no change. |
@@ -68,6 +68,45 @@ threshold lies somewhere between those two rates, and the block lasts long.
 A departure whose run is unknown is counted as unverified, even when the board's `destinazione` is the searched
 station, which it certainly reaches. Now that the name resolves only on an exact match (5), that case could become a
 trip built from the board's times. This is a product decision, not an API question.
+
+### D. Trip searches for another day
+
+Because runs exist only for today (6), a `/trips` search for tomorrow answers with no trips, and every departure is
+counted in `unverifiedDepartures`. For example, Saronno → Milano Cadorna on 26/11 at 08:00 gave 0 trips and 54
+unverified departures.
+
+The same thing happens for a search made today, late in the evening. A board at 23:18 Rome time includes trains
+leaving after midnight. They are tomorrow's runs (`dataPartenzaTreno` = tomorrow), so they answer 204 until midnight.
+For example, Saronno/Saronno Sud → Cadorna/Porta Venezia at 23:18 on 2026-11-25 gave 5 trips and 4 unverified
+departures: the 4 board entries from 00:06 onwards.
+
+**Options:**
+- reject dates other than today with a 400 (this does not help the late-evening case);
+- use today's run of the same train as a timetable, shifted to the requested day, and flag the trip as planned;
+- build trips from the board alone when `destinazione` is the searched station.
+
+**How the official site handles it** (its `js/app.js`, and 15 live calls on 2026-11-25): it never shows a run for
+another day.
+- Every way into a run goes through `apriDettaglioTreno`, which makes one `andamentoTreno` call with the given date.
+- Train-number search (`cercaNumeroTrenoTrenoAutocomplete`) lists today's runs only.
+- The journey planner turns train details off for any other day: `shouldOpenTrainDetail = this.data.isSame(moment(), 'day')`.
+- The station board UI can't go past the end of today. A hand-built `partenze` call for tomorrow does return a full
+  board, with tomorrow's `dataPartenzaTreno`.
+- `tratteCanvas` for tomorrow answers 204 too.
+- `soluzioniViaggioNew` answers 404 even in the site's exact format (`/1933/1066/2026-11-26T08:00:00`). When it
+  worked, it returned legs only, with no intermediate stops.
+- `cercaNumeroTreno/{n}` returns only today's first match, which can be another train with the same number (12018
+  gave Genova Brignole rather than Varese Nord).
+
+There is no timetable endpoint, so for another day the only stop list available is today's run of the same train.
+
+**Today's run as a template:** 8 Cadorna-bound trains were taken from tomorrow's Saronno board.
+- For 7, today's run existed, and its scheduled Saronno departure matched tomorrow's board to the minute.
+- For 1 (1126/S01765), there was no run today: the train runs on Thursdays but not Wednesdays.
+- Stops and times elsewhere can't be checked, because tomorrow's board only gives the time at the board station.
+
+A possible rule: use today's run only when it matches the board entry on number, origin and time of day at the board
+station, and mark the trip as planned. Otherwise, the departure stays unverified.
 
 ---
 

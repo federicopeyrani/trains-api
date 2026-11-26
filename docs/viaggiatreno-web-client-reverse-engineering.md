@@ -336,6 +336,17 @@ Coded values:
   - `abc` → 204.
 - **The origin must be the true origin.** An intermediate stop's code gives 204, and so does a code without the `S`.
 - An unknown number gives 204. The empty body has `Content-Type: text/plain`.
+- **The site never offers a non-today run.**
+  - The station board starts at "now". Its "next" link (+2 h) is only enabled before the end of the day (`controllaDate`).
+  - The journey planner disables train detail for any day but today: `shouldOpenTrainDetail = this.data.isSame(moment(), 'day')`.
+  - Train-number search (`cercaNumeroTrenoTrenoAutocomplete`) lists today's runs only.
+  - StampaTreno's date picker allows only the past 7 days.
+  - `apriDettaglioTreno` has no 204 handling: it would open a tab built from `null`.
+  - No endpoint gives a timetable or planned stop list for another day (`soluzioniViaggioNew` is dead, see §8).
+- **Today's run as a template for tomorrow** (checked 2026-11-25 with 8 Saronno → Milano Cadorna trains taken from tomorrow's board):
+  - 7 of 8 had a run today, and its scheduled Saronno departure matched tomorrow's board to the minute.
+  - Train 1126/S01765 runs tomorrow but has no run today (204, and an empty autocomplete).
+  - Stops and times other than at the board station can't be checked for tomorrow.
 
 ### 5.4 `fermate[]` (stops)
 
@@ -538,6 +549,15 @@ Each stop object has these fields:
   - If `labelVisibile`, the marker gets the label `nomeCitta`, offset by `offsetX`/`offsetY`.
   - Clicking opens the station tab with `codiceStazione`.
 - Both Italian and English booleans are present (`pinpointVisibile`/`pinpointVisible`, `labelVisibile`/`labelVisible`); the site reads the Italian ones.
+- **Coverage** (checked 2026-11-25):
+  - Region 0 alone is incomplete: 609 distinct codes, missing 213 of 272 codes seen on boards and in `fermate`.
+  - Regions 1..22 together hold 2,847 codes and cover 269 of the 272. The remaining 3 (S00201 Modane, S05975 Bazzano, S05978 Vignola) are only in region 0.
+  - Regions 0..22 together hold 3,362 distinct codes and cover all 272.
+- **Per-region entries**:
+  - Every entry has `localita.nomeLungo`/`nomeBreve` and `codReg` equal to its list's region.
+  - 48 stations have no non-zero `lat`/`lon` in any entry.
+  - 102 border stations appear in two regions, with the same name and coordinates in both. `/regione` returns one of the two regions for them.
+- **Size**: about 1.43 MB for regions 1..22, plus 380 kB for region 0.
 
 ### 9.2 `elencoTratte/{idRegione}/{zoom}/{categorie}/{catAV}/{timestamp}` (synchronous)
 
