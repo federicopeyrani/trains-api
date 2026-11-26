@@ -24,5 +24,6 @@ class ViaggiaTrenoConfig {
     fun stationsApi(engine: ObjectProvider<HttpClientEngine>) = ViaggiaTrenoClients.stationsApi(engine.ifAvailable)
 
     @Bean
-    fun stationRegistry(stationsApi: StationsApi, cache: Cache) = ViaggiaTrenoStationRegistry(stationsApi, cache)
+    fun stationRegistry(stationsApi: StationsApi, cache: Cache, properties: ViaggiaTrenoProperties) =
+        ViaggiaTrenoStationRegistry(stationsApi, cache, ttls = properties.cache)
 }

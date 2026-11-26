@@ -10,8 +10,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.minutes
+import kotlin.time.toKotlinDuration
 
 /**
  * Every station of ViaggiaTreno's per-region lists (`elencoStazioni/0..22`), loaded at once and kept for a day, so that
@@ -22,11 +21,13 @@ import kotlin.time.Duration.Companion.minutes
  * Callers fall back to a direct lookup when a station is not [found][find].
  *
  * @param regions the lists to load; all ViaggiaTreno regions by default
+ * @param ttls how long the lists, or a failure to load them, are kept
  */
 class ViaggiaTrenoStationRegistry(
     private val stationsApi: StationsApi,
     private val cache: Cache,
     private val regions: List<Int> = (0..22).toList(),
+    private val ttls: ViaggiaTrenoProperties.CacheTtls = ViaggiaTrenoProperties.CacheTtls(),
 ) {
 
     companion object {
@@ -46,12 +47,14 @@ class ViaggiaTrenoStationRegistry(
     suspend fun find(id: String): StazioneDettagliata? = stations()?.get(id)
 
     /**
-     * All listed stations by id, or `null` if the lists could not be loaded. A failure is remembered for a few minutes,
+     * All listed stations by id, or `null` if the lists could not be loaded. A failure is remembered for a while,
      * so an outage does not cost a full reload on every lookup.
      */
     private suspend fun stations() = cache.getOrPut(
         key = Cache.Key.of<Map<String, StazioneDettagliata>?>("station-registry"),
-        ttl = { if (it == null) 5.minutes else 24.hours },
+        ttl = {
+            if (it == null) ttls.stationRegistryFailure.toKotlinDuration() else ttls.stationRegistry.toKotlinDuration()
+        },
     ) {
         try {
             load()

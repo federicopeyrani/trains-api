@@ -6,15 +6,17 @@ import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.a
 import com.federicopeyrani.trainapis.shared.infrastructure.viaggiatreno.client.model.StazioneDettagliata
 import com.federicopeyrani.trainapis.shared.util.log
 import org.springframework.stereotype.Component
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toKotlinDuration
 
 @Component
 class ViaggiaTrenoStationsApiWrapper(
     private val stationsApi: StationsApi,
     private val registry: ViaggiaTrenoStationRegistry,
     private val cache: Cache,
+    properties: ViaggiaTrenoProperties = ViaggiaTrenoProperties(),
 ) {
+
+    private val ttls = properties.cache
 
     companion object {
 
@@ -23,7 +25,7 @@ class ViaggiaTrenoStationsApiWrapper(
 
     suspend fun searchStations(query: String) = cache.getOrPut(
         key = Cache.Key.of("search-stations-$query"),
-        ttl = { 60.minutes }
+        ttl = { ttls.stationSearch.toKotlinDuration() }
     ) {
         log.info("Searching stations from ViaggiaTreno for query '$query'")
         viaggiaTrenoCall("station search") {
@@ -50,7 +52,9 @@ class ViaggiaTrenoStationsApiWrapper(
 
     private suspend fun lookUpStationDetails(stationId: String) = cache.getOrPut(
         key = Cache.Key.of("station-details-$stationId"),
-        ttl = { if (it?.localita == null) 10.seconds else 60.minutes }
+        ttl = {
+            if (it?.localita == null) ttls.stationDetailsMissing.toKotlinDuration() else ttls.stationDetails.toKotlinDuration()
+        }
     ) {
         val regionCode = getRegionCode(stationId).data
 
@@ -69,7 +73,7 @@ class ViaggiaTrenoStationsApiWrapper(
 
     private suspend fun getRegionCode(stationId: String) = cache.getOrPut(
         key = Cache.Key.of("station-region-$stationId"),
-        ttl = { 60.minutes }
+        ttl = { ttls.stationRegion.toKotlinDuration() }
     ) {
         log.info("Fetching region code from ViaggiaTreno for station '$stationId'")
 

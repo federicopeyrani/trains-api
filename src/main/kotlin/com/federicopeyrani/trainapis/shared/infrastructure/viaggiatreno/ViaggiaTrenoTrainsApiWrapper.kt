@@ -18,14 +18,17 @@ import kotlinx.datetime.format.char
 import kotlinx.datetime.format.format
 import kotlinx.datetime.toLocalDateTime
 import org.springframework.stereotype.Component
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
+import kotlin.time.toKotlinDuration
 
 @Component
 class ViaggiaTrenoTrainsApiWrapper(
     private val trainsApi: TrainsApi,
     private val cache: Cache,
+    properties: ViaggiaTrenoProperties = ViaggiaTrenoProperties(),
 ) {
+
+    private val ttls = properties.cache
 
     companion object {
 
@@ -64,7 +67,7 @@ class ViaggiaTrenoTrainsApiWrapper(
         val minute = Instant.fromEpochSeconds(date.epochSeconds - date.epochSeconds.mod(60L))
         return cache.getOrPut(
             key = Cache.Key.of("departures-$from-$minute"),
-            ttl = { 10.minutes },
+            ttl = { ttls.departures.toKotlinDuration() },
         ) { fetchDepartures(from, minute) }
     }
 
@@ -109,7 +112,7 @@ class ViaggiaTrenoTrainsApiWrapper(
         date: Long,
     ) = cache.getOrPut(
         key = Cache.Key.of<AndamentoTreno?>("train-${from}-${trainId}-${date}"),
-        ttl = { if (it == null) 1.minutes else 10.minutes }
+        ttl = { if (it == null) ttls.trainUnknown.toKotlinDuration() else ttls.train.toKotlinDuration() }
     ) {
         log.info("Fetching train status from ViaggiaTreno API for trainId=${trainId} on date=$date at stationId=$from")
 
